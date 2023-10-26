@@ -1,0 +1,3 @@
+kem_alg: ["X25519", "kyber90s512", "kyber512", "bikel1", "hqc128", "p256_kyber512", "p256_bikel1", "p256_hqc128", "prime256v1"]
+sig_alg: ["dilithium2", "dilithium2_aes", "falcon512", "sphincsharaka128fsimple", "p256_dilithium2", "rsa3072_dilithium2", "p256_falcon512", "p256_sphincsharaka128fsimple", "rsa:1024", "rsa:2048", "rsa:3072", "rsa:4096"]
+tc: ['']

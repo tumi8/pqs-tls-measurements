@@ -1,0 +1,2071 @@
+diff --git a/AUTHORS b/AUTHORS
+index dac46f8b7e..067d9f81ae 100644
+--- a/AUTHORS
++++ b/AUTHORS
+@@ -40,3 +40,5 @@ Tim Hudson
+ Tomáš Mráz
+ Ulf Möller
+ Viktor Dukhovni
++Florian Wiedner
++Markus Sosnowski
+diff --git a/README.md b/README.md
+index ebf18dae09..e517302c02 100644
+--- a/README.md
++++ b/README.md
+@@ -37,6 +37,8 @@ Both liboqs and this fork are part of the **Open Quantum Safe (OQS) project**, w
+ 
+ Note that, referencing the terminology defined by [ETSI](https://www.etsi.org/technologies/quantum-safe-cryptography) and [CSA](https://downloads.cloudsecurityalliance.org/assets/research/quantum-safe-security/applied-quantum-safe-security.pdf), the terms "post-quantum cryptography" (PQC), "quantum-safe cryptography" (QSC) and "quantum-resistant cryptography" (QRC) all refer to the same class of cryptographic algorithms that is made available for use via this fork.
+ 
++This branch adds the support of basic sphincs post quantum cryptography as well as forces TCP pushes not done in the original version for clear behavior.
++
+ ## Status
+ 
+ This fork is currently in sync with the [OpenSSL\_1\_1\_1k tag](https://github.com/openssl/openssl/tree/OpenSSL_1_1_1k), and adds the following:
+@@ -80,7 +82,6 @@ The following quantum-safe algorithms from liboqs are supported (assuming they h
+ - **FrodoKEM**: `frodo640aes`, `frodo640shake`, `frodo976aes`, `frodo976shake`, `frodo1344aes`, `frodo1344shake`
+ - **HQC**: `hqc128`, `hqc192`, `hqc256`†
+ - **NTRU**: `ntru_hps2048509`, `ntru_hps2048677`, `ntru_hps4096821`, `ntru_hps40961229`, `ntru_hrss701`, `ntru_hrss1373`
+-- **NTRU-Prime**: `ntrulpr653`, `ntrulpr761`, `ntrulpr857`, `ntrulpr1277`, `sntrup653`, `sntrup761`, `sntrup857`, `sntrup1277`
+ - **SABER**: `lightsaber`, `saber`, `firesaber`
+ <!--- OQS_TEMPLATE_FRAGMENT_LIST_KEXS_END -->
+ 
+@@ -101,9 +102,7 @@ The following digital signature algorithms from liboqs are supported by the fork
+ <!--- OQS_TEMPLATE_FRAGMENT_LIST_SIGS_START -->
+ - **CRYSTALS-Dilithium**:`dilithium2`\*, `dilithium3`\*, `dilithium5`\*, `dilithium2_aes`\*, `dilithium3_aes`\*, `dilithium5_aes`\*
+ - **Falcon**:`falcon512`\*, `falcon1024`\*
+-- **Picnic**:`picnicl1fs`, `picnicl1ur`, `picnicl1full`\*, `picnic3l1`\*, `picnic3l3`, `picnic3l5`
+-- **Rainbow**:`rainbowIIIclassic`, `rainbowIIIcircumzenithal`, `rainbowIIIcompressed`, `rainbowVclassic`\*, `rainbowVcircumzenithal`, `rainbowVcompressed`
+-- **SPHINCS-Haraka**:`sphincsharaka128frobust`\*, `sphincsharaka128fsimple`, `sphincsharaka128srobust`, `sphincsharaka128ssimple`, `sphincsharaka192frobust`, `sphincsharaka192fsimple`, `sphincsharaka192srobust`, `sphincsharaka192ssimple`, `sphincsharaka256frobust`, `sphincsharaka256fsimple`, `sphincsharaka256srobust`, `sphincsharaka256ssimple`
++- **SPHINCS-Haraka**:`sphincsharaka128frobust`, `sphincsharaka128fsimple`\*, `sphincsharaka128srobust`, `sphincsharaka128ssimple`, `sphincsharaka192frobust`, `sphincsharaka192fsimple`\*, `sphincsharaka192srobust`, `sphincsharaka192ssimple`, `sphincsharaka256frobust`, `sphincsharaka256fsimple`\*, `sphincsharaka256srobust`, `sphincsharaka256ssimple`
+ - **SPHINCS-SHA256**:`sphincssha256128frobust`\*, `sphincssha256128fsimple`, `sphincssha256128srobust`, `sphincssha256128ssimple`, `sphincssha256192frobust`, `sphincssha256192fsimple`, `sphincssha256192srobust`, `sphincssha256192ssimple`, `sphincssha256256frobust`, `sphincssha256256fsimple`, `sphincssha256256srobust`, `sphincssha256256ssimple`
+ - **SPHINCS-SHAKE256**:`sphincsshake256128frobust`\*, `sphincsshake256128fsimple`, `sphincsshake256128srobust`, `sphincsshake256128ssimple`, `sphincsshake256192frobust`, `sphincsshake256192fsimple`, `sphincsshake256192srobust`, `sphincsshake256192ssimple`, `sphincsshake256256frobust`, `sphincsshake256256fsimple`, `sphincsshake256256srobust`, `sphincsshake256256ssimple`
+ <!--- OQS_TEMPLATE_FRAGMENT_LIST_SIGS_END -->
+diff --git a/apps/s_cb.c b/apps/s_cb.c
+index dc3a26d790..d4de7ee279 100644
+--- a/apps/s_cb.c
++++ b/apps/s_cb.c
+@@ -284,28 +284,20 @@ static const char *get_sigtype(int nid)
+         return "Falcon-1024";
+     case NID_p521_falcon1024:
+         return "ECDSA p521 - Falcon-1024";
+-    case NID_picnicl1full:
+-        return "Picnic L1 full";
+-    case NID_p256_picnicl1full:
+-        return "ECDSA p256 - Picnic L1 full";
+-    case NID_rsa3072_picnicl1full:
+-        return "RSA3072 - Picnic L1 full";
+-    case NID_picnic3l1:
+-        return "Picnic3 L1";
+-    case NID_p256_picnic3l1:
+-        return "ECDSA p256 - Picnic3 L1";
+-    case NID_rsa3072_picnic3l1:
+-        return "RSA3072 - Picnic3 L1";
+-    case NID_rainbowVclassic:
+-        return "Rainbow-V-Classic";
+-    case NID_p521_rainbowVclassic:
+-        return "ECDSA p521 - Rainbow-V-Classic";
+-    case NID_sphincsharaka128frobust:
+-        return "SPHINCS+-Haraka-128f-robust";
+-    case NID_p256_sphincsharaka128frobust:
+-        return "ECDSA p256 - SPHINCS+-Haraka-128f-robust";
+-    case NID_rsa3072_sphincsharaka128frobust:
+-        return "RSA3072 - SPHINCS+-Haraka-128f-robust";
++    case NID_sphincsharaka128fsimple:
++        return "SPHINCS+-Haraka-128f-simple";
++    case NID_p256_sphincsharaka128fsimple:
++        return "ECDSA p256 - SPHINCS+-Haraka-128f-simple";
++    case NID_rsa3072_sphincsharaka128fsimple:
++        return "RSA3072 - SPHINCS+-Haraka-128f-simple";
++    case NID_sphincsharaka192fsimple:
++        return "SPHINCS+-Haraka-192f-simple";
++    case NID_p384_sphincsharaka192fsimple:
++        return "ECDSA p384 - SPHINCS+-Haraka-192f-simple";
++    case NID_sphincsharaka256fsimple:
++        return "SPHINCS+-Haraka-256f-simple";
++    case NID_p521_sphincsharaka256fsimple:
++        return "ECDSA p521 - SPHINCS+-Haraka-256f-simple";
+     case NID_sphincssha256128frobust:
+         return "SPHINCS+-SHA256-128f-robust";
+     case NID_p256_sphincssha256128frobust:
+@@ -497,14 +489,6 @@ static const char* OQS_CURVE_ID_NAME_STR(int id) {
+   case 0x022C: return "hqc128";
+   case 0x022D: return "hqc192";
+   case 0x022E: return "hqc256";
+-  case 0x022F: return "ntrulpr653";
+-  case 0x0230: return "ntrulpr761";
+-  case 0x0231: return "ntrulpr857";
+-  case 0x0241: return "ntrulpr1277";
+-  case 0x0232: return "sntrup653";
+-  case 0x0233: return "sntrup761";
+-  case 0x0234: return "sntrup857";
+-  case 0x0242: return "sntrup1277";
+   ///// OQS_TEMPLATE_FRAGMENT_OQS_CURVE_ID_NAME_STR_END
+   ///// OQS_TEMPLATE_FRAGMENT_OQS_CURVE_ID_NAME_STR_HYBRID_START
+    case 0x2F00: return "p256_frodo640aes hybrid";
+@@ -533,14 +517,6 @@ static const char* OQS_CURVE_ID_NAME_STR(int id) {
+    case 0x2F2C: return "p256_hqc128 hybrid";
+    case 0x2F2D: return "p384_hqc192 hybrid";
+    case 0x2F2E: return "p521_hqc256 hybrid";
+-   case 0x2F2F: return "p256_ntrulpr653 hybrid";
+-   case 0x2F43: return "p256_ntrulpr761 hybrid";
+-   case 0x2F31: return "p384_ntrulpr857 hybrid";
+-   case 0x2F41: return "p521_ntrulpr1277 hybrid";
+-   case 0x2F32: return "p256_sntrup653 hybrid";
+-   case 0x2F44: return "p256_sntrup761 hybrid";
+-   case 0x2F34: return "p384_sntrup857 hybrid";
+-   case 0x2F42: return "p521_sntrup1277 hybrid";
+   ///// OQS_TEMPLATE_FRAGMENT_OQS_CURVE_ID_NAME_STR_HYBRID_END
+   default: return "";
+   }
+diff --git a/crypto/asn1/standard_methods.h b/crypto/asn1/standard_methods.h
+index 54bee05d27..b97944b888 100644
+--- a/crypto/asn1/standard_methods.h
++++ b/crypto/asn1/standard_methods.h
+@@ -79,17 +79,13 @@ static const EVP_PKEY_ASN1_METHOD *standard_methods[] = {
+     &rsa3072_falcon512_asn1_meth,
+     &falcon1024_asn1_meth,
+     &p521_falcon1024_asn1_meth,
+-    &picnicl1full_asn1_meth,
+-    &p256_picnicl1full_asn1_meth,
+-    &rsa3072_picnicl1full_asn1_meth,
+-    &picnic3l1_asn1_meth,
+-    &p256_picnic3l1_asn1_meth,
+-    &rsa3072_picnic3l1_asn1_meth,
+-    &rainbowVclassic_asn1_meth,
+-    &p521_rainbowVclassic_asn1_meth,
+-    &sphincsharaka128frobust_asn1_meth,
+-    &p256_sphincsharaka128frobust_asn1_meth,
+-    &rsa3072_sphincsharaka128frobust_asn1_meth,
++    &sphincsharaka128fsimple_asn1_meth,
++    &p256_sphincsharaka128fsimple_asn1_meth,
++    &rsa3072_sphincsharaka128fsimple_asn1_meth,
++    &sphincsharaka192fsimple_asn1_meth,
++    &p384_sphincsharaka192fsimple_asn1_meth,
++    &sphincsharaka256fsimple_asn1_meth,
++    &p521_sphincsharaka256fsimple_asn1_meth,
+     &sphincssha256128frobust_asn1_meth,
+     &p256_sphincssha256128frobust_asn1_meth,
+     &rsa3072_sphincssha256128frobust_asn1_meth,
+diff --git a/crypto/ec/oqs_meth.c b/crypto/ec/oqs_meth.c
+index 90fd3b2a94..eab5f42eec 100644
+--- a/crypto/ec/oqs_meth.c
++++ b/crypto/ec/oqs_meth.c
+@@ -95,17 +95,13 @@ int oqssl_sig_nids_list[] = {
+         NID_rsa3072_falcon512,
+         NID_falcon1024,
+         NID_p521_falcon1024,
+-        NID_picnicl1full,
+-        NID_p256_picnicl1full,
+-        NID_rsa3072_picnicl1full,
+-        NID_picnic3l1,
+-        NID_p256_picnic3l1,
+-        NID_rsa3072_picnic3l1,
+-        NID_rainbowVclassic,
+-        NID_p521_rainbowVclassic,
+-        NID_sphincsharaka128frobust,
+-        NID_p256_sphincsharaka128frobust,
+-        NID_rsa3072_sphincsharaka128frobust,
++        NID_sphincsharaka128fsimple,
++        NID_p256_sphincsharaka128fsimple,
++        NID_rsa3072_sphincsharaka128fsimple,
++        NID_sphincsharaka192fsimple,
++        NID_p384_sphincsharaka192fsimple,
++        NID_sphincsharaka256fsimple,
++        NID_p521_sphincsharaka256fsimple,
+         NID_sphincssha256128frobust,
+         NID_p256_sphincssha256128frobust,
+         NID_rsa3072_sphincssha256128frobust,
+@@ -143,14 +139,6 @@ int oqssl_kem_nids_list[] = {
+         NID_hqc128,
+         NID_hqc192,
+         NID_hqc256,
+-        NID_ntrulpr653,
+-        NID_ntrulpr761,
+-        NID_ntrulpr857,
+-        NID_ntrulpr1277,
+-        NID_sntrup653,
+-        NID_sntrup761,
+-        NID_sntrup857,
+-        NID_sntrup1277,
+ /////// OQS_TEMPLATE_FRAGMENT_LIST_KNOWN_KEM_NIDS_END
+ };
+ 
+@@ -208,21 +196,16 @@ char* get_oqs_alg_name(int openssl_nid)
+     case NID_falcon1024:
+     case NID_p521_falcon1024:
+       return OQS_SIG_alg_falcon_1024;
+-    case NID_picnicl1full:
+-    case NID_p256_picnicl1full:
+-    case NID_rsa3072_picnicl1full:
+-      return OQS_SIG_alg_picnic_L1_full;
+-    case NID_picnic3l1:
+-    case NID_p256_picnic3l1:
+-    case NID_rsa3072_picnic3l1:
+-      return OQS_SIG_alg_picnic3_L1;
+-    case NID_rainbowVclassic:
+-    case NID_p521_rainbowVclassic:
+-      return OQS_SIG_alg_rainbow_V_classic;
+-    case NID_sphincsharaka128frobust:
+-    case NID_p256_sphincsharaka128frobust:
+-    case NID_rsa3072_sphincsharaka128frobust:
+-      return OQS_SIG_alg_sphincs_haraka_128f_robust;
++    case NID_sphincsharaka128fsimple:
++    case NID_p256_sphincsharaka128fsimple:
++    case NID_rsa3072_sphincsharaka128fsimple:
++      return OQS_SIG_alg_sphincs_haraka_128f_simple;
++    case NID_sphincsharaka192fsimple:
++    case NID_p384_sphincsharaka192fsimple:
++      return OQS_SIG_alg_sphincs_haraka_192f_simple;
++    case NID_sphincsharaka256fsimple:
++    case NID_p521_sphincsharaka256fsimple:
++      return OQS_SIG_alg_sphincs_haraka_256f_simple;
+     case NID_sphincssha256128frobust:
+     case NID_p256_sphincssha256128frobust:
+     case NID_rsa3072_sphincssha256128frobust:
+@@ -309,30 +292,6 @@ char* get_oqs_alg_name(int openssl_nid)
+     case NID_hqc256:
+     case NID_p521_hqc256:
+       return OQS_KEM_alg_hqc_256;
+-    case NID_ntrulpr653:
+-    case NID_p256_ntrulpr653:
+-      return OQS_KEM_alg_ntruprime_ntrulpr653;
+-    case NID_ntrulpr761:
+-    case NID_p256_ntrulpr761:
+-      return OQS_KEM_alg_ntruprime_ntrulpr761;
+-    case NID_ntrulpr857:
+-    case NID_p384_ntrulpr857:
+-      return OQS_KEM_alg_ntruprime_ntrulpr857;
+-    case NID_ntrulpr1277:
+-    case NID_p521_ntrulpr1277:
+-      return OQS_KEM_alg_ntruprime_ntrulpr1277;
+-    case NID_sntrup653:
+-    case NID_p256_sntrup653:
+-      return OQS_KEM_alg_ntruprime_sntrup653;
+-    case NID_sntrup761:
+-    case NID_p256_sntrup761:
+-      return OQS_KEM_alg_ntruprime_sntrup761;
+-    case NID_sntrup857:
+-    case NID_p384_sntrup857:
+-      return OQS_KEM_alg_ntruprime_sntrup857;
+-    case NID_sntrup1277:
+-    case NID_p521_sntrup1277:
+-      return OQS_KEM_alg_ntruprime_sntrup1277;
+ ///// OQS_TEMPLATE_FRAGMENT_ASSIGN_SIG_ALG_END
+     default:
+       return NULL;
+@@ -355,13 +314,10 @@ static int is_oqs_hybrid_alg(int openssl_nid)
+     case NID_p256_falcon512:
+     case NID_rsa3072_falcon512:
+     case NID_p521_falcon1024:
+-    case NID_p256_picnicl1full:
+-    case NID_rsa3072_picnicl1full:
+-    case NID_p256_picnic3l1:
+-    case NID_rsa3072_picnic3l1:
+-    case NID_p521_rainbowVclassic:
+-    case NID_p256_sphincsharaka128frobust:
+-    case NID_rsa3072_sphincsharaka128frobust:
++    case NID_p256_sphincsharaka128fsimple:
++    case NID_rsa3072_sphincsharaka128fsimple:
++    case NID_p384_sphincsharaka192fsimple:
++    case NID_p521_sphincsharaka256fsimple:
+     case NID_p256_sphincssha256128frobust:
+     case NID_rsa3072_sphincssha256128frobust:
+     case NID_p256_sphincsshake256128frobust:
+@@ -382,28 +338,25 @@ static int get_classical_nid(int hybrid_id)
+     case NID_rsa3072_dilithium2:
+     case NID_rsa3072_dilithium2_aes:
+     case NID_rsa3072_falcon512:
+-    case NID_rsa3072_picnicl1full:
+-    case NID_rsa3072_picnic3l1:
+-    case NID_rsa3072_sphincsharaka128frobust:
++    case NID_rsa3072_sphincsharaka128fsimple:
+     case NID_rsa3072_sphincssha256128frobust:
+     case NID_rsa3072_sphincsshake256128frobust:
+       return NID_rsaEncryption;
+     case NID_p256_dilithium2:
+     case NID_p256_dilithium2_aes:
+     case NID_p256_falcon512:
+-    case NID_p256_picnicl1full:
+-    case NID_p256_picnic3l1:
+-    case NID_p256_sphincsharaka128frobust:
++    case NID_p256_sphincsharaka128fsimple:
+     case NID_p256_sphincssha256128frobust:
+     case NID_p256_sphincsshake256128frobust:
+       return NID_X9_62_prime256v1;
+     case NID_p384_dilithium3:
+     case NID_p384_dilithium3_aes:
++    case NID_p384_sphincsharaka192fsimple:
+       return NID_secp384r1;
+     case NID_p521_dilithium5:
+     case NID_p521_dilithium5_aes:
+     case NID_p521_falcon1024:
+-    case NID_p521_rainbowVclassic:
++    case NID_p521_sphincsharaka256fsimple:
+       return NID_secp521r1;///// OQS_TEMPLATE_FRAGMENT_ASSIGN_CLASSICAL_NIDS_END
+     default:
+       return 0;
+@@ -434,17 +387,13 @@ static int get_oqs_nid(int hybrid_id)
+       return NID_falcon512;
+     case NID_p521_falcon1024:
+       return NID_falcon1024;
+-    case NID_p256_picnicl1full:
+-    case NID_rsa3072_picnicl1full:
+-      return NID_picnicl1full;
+-    case NID_p256_picnic3l1:
+-    case NID_rsa3072_picnic3l1:
+-      return NID_picnic3l1;
+-    case NID_p521_rainbowVclassic:
+-      return NID_rainbowVclassic;
+-    case NID_p256_sphincsharaka128frobust:
+-    case NID_rsa3072_sphincsharaka128frobust:
+-      return NID_sphincsharaka128frobust;
++    case NID_p256_sphincsharaka128fsimple:
++    case NID_rsa3072_sphincsharaka128fsimple:
++      return NID_sphincsharaka128fsimple;
++    case NID_p384_sphincsharaka192fsimple:
++      return NID_sphincsharaka192fsimple;
++    case NID_p521_sphincsharaka256fsimple:
++      return NID_sphincsharaka256fsimple;
+     case NID_p256_sphincssha256128frobust:
+     case NID_rsa3072_sphincssha256128frobust:
+       return NID_sphincssha256128frobust;
+@@ -595,21 +544,16 @@ static int get_oqs_security_bits(int openssl_nid)
+     case NID_falcon1024:
+     case NID_p521_falcon1024:
+       return 256;
+-    case NID_picnicl1full:
+-    case NID_p256_picnicl1full:
+-    case NID_rsa3072_picnicl1full:
++    case NID_sphincsharaka128fsimple:
++    case NID_p256_sphincsharaka128fsimple:
++    case NID_rsa3072_sphincsharaka128fsimple:
+       return 128;
+-    case NID_picnic3l1:
+-    case NID_p256_picnic3l1:
+-    case NID_rsa3072_picnic3l1:
+-      return 128;
+-    case NID_rainbowVclassic:
+-    case NID_p521_rainbowVclassic:
++    case NID_sphincsharaka192fsimple:
++    case NID_p384_sphincsharaka192fsimple:
++      return 192;
++    case NID_sphincsharaka256fsimple:
++    case NID_p521_sphincsharaka256fsimple:
+       return 256;
+-    case NID_sphincsharaka128frobust:
+-    case NID_p256_sphincsharaka128frobust:
+-    case NID_rsa3072_sphincsharaka128frobust:
+-      return 128;
+     case NID_sphincssha256128frobust:
+     case NID_p256_sphincssha256128frobust:
+     case NID_rsa3072_sphincssha256128frobust:
+@@ -1209,17 +1153,13 @@ static int oqs_item_verify(EVP_MD_CTX *ctx, const ASN1_ITEM *it, void *asn,
+         nid != NID_rsa3072_falcon512 &&
+         nid != NID_falcon1024 &&
+         nid != NID_p521_falcon1024 &&
+-        nid != NID_picnicl1full &&
+-        nid != NID_p256_picnicl1full &&
+-        nid != NID_rsa3072_picnicl1full &&
+-        nid != NID_picnic3l1 &&
+-        nid != NID_p256_picnic3l1 &&
+-        nid != NID_rsa3072_picnic3l1 &&
+-        nid != NID_rainbowVclassic &&
+-        nid != NID_p521_rainbowVclassic &&
+-        nid != NID_sphincsharaka128frobust &&
+-        nid != NID_p256_sphincsharaka128frobust &&
+-        nid != NID_rsa3072_sphincsharaka128frobust &&
++        nid != NID_sphincsharaka128fsimple &&
++        nid != NID_p256_sphincsharaka128fsimple &&
++        nid != NID_rsa3072_sphincsharaka128fsimple &&
++        nid != NID_sphincsharaka192fsimple &&
++        nid != NID_p384_sphincsharaka192fsimple &&
++        nid != NID_sphincsharaka256fsimple &&
++        nid != NID_p521_sphincsharaka256fsimple &&
+         nid != NID_sphincssha256128frobust &&
+         nid != NID_p256_sphincssha256128frobust &&
+         nid != NID_rsa3072_sphincssha256128frobust &&
+@@ -1805,17 +1745,13 @@ DEFINE_OQS_EVP_METHODS(p256_falcon512, NID_p256_falcon512, "p256_falcon512", "Op
+ DEFINE_OQS_EVP_METHODS(rsa3072_falcon512, NID_rsa3072_falcon512, "rsa3072_falcon512", "OpenSSL RSA3072 Falcon-512 algorithm")
+ DEFINE_OQS_EVP_METHODS(falcon1024, NID_falcon1024, "falcon1024", "OpenSSL Falcon-1024 algorithm")
+ DEFINE_OQS_EVP_METHODS(p521_falcon1024, NID_p521_falcon1024, "p521_falcon1024", "OpenSSL ECDSA p521 Falcon-1024 algorithm")
+-DEFINE_OQS_EVP_METHODS(picnicl1full, NID_picnicl1full, "picnicl1full", "OpenSSL Picnic L1 full algorithm")
+-DEFINE_OQS_EVP_METHODS(p256_picnicl1full, NID_p256_picnicl1full, "p256_picnicl1full", "OpenSSL ECDSA p256 Picnic L1 full algorithm")
+-DEFINE_OQS_EVP_METHODS(rsa3072_picnicl1full, NID_rsa3072_picnicl1full, "rsa3072_picnicl1full", "OpenSSL RSA3072 Picnic L1 full algorithm")
+-DEFINE_OQS_EVP_METHODS(picnic3l1, NID_picnic3l1, "picnic3l1", "OpenSSL Picnic3 L1 algorithm")
+-DEFINE_OQS_EVP_METHODS(p256_picnic3l1, NID_p256_picnic3l1, "p256_picnic3l1", "OpenSSL ECDSA p256 Picnic3 L1 algorithm")
+-DEFINE_OQS_EVP_METHODS(rsa3072_picnic3l1, NID_rsa3072_picnic3l1, "rsa3072_picnic3l1", "OpenSSL RSA3072 Picnic3 L1 algorithm")
+-DEFINE_OQS_EVP_METHODS(rainbowVclassic, NID_rainbowVclassic, "rainbowVclassic", "OpenSSL Rainbow-V-Classic algorithm")
+-DEFINE_OQS_EVP_METHODS(p521_rainbowVclassic, NID_p521_rainbowVclassic, "p521_rainbowVclassic", "OpenSSL ECDSA p521 Rainbow-V-Classic algorithm")
+-DEFINE_OQS_EVP_METHODS(sphincsharaka128frobust, NID_sphincsharaka128frobust, "sphincsharaka128frobust", "OpenSSL SPHINCS+-Haraka-128f-robust algorithm")
+-DEFINE_OQS_EVP_METHODS(p256_sphincsharaka128frobust, NID_p256_sphincsharaka128frobust, "p256_sphincsharaka128frobust", "OpenSSL ECDSA p256 SPHINCS+-Haraka-128f-robust algorithm")
+-DEFINE_OQS_EVP_METHODS(rsa3072_sphincsharaka128frobust, NID_rsa3072_sphincsharaka128frobust, "rsa3072_sphincsharaka128frobust", "OpenSSL RSA3072 SPHINCS+-Haraka-128f-robust algorithm")
++DEFINE_OQS_EVP_METHODS(sphincsharaka128fsimple, NID_sphincsharaka128fsimple, "sphincsharaka128fsimple", "OpenSSL SPHINCS+-Haraka-128f-simple algorithm")
++DEFINE_OQS_EVP_METHODS(p256_sphincsharaka128fsimple, NID_p256_sphincsharaka128fsimple, "p256_sphincsharaka128fsimple", "OpenSSL ECDSA p256 SPHINCS+-Haraka-128f-simple algorithm")
++DEFINE_OQS_EVP_METHODS(rsa3072_sphincsharaka128fsimple, NID_rsa3072_sphincsharaka128fsimple, "rsa3072_sphincsharaka128fsimple", "OpenSSL RSA3072 SPHINCS+-Haraka-128f-simple algorithm")
++DEFINE_OQS_EVP_METHODS(sphincsharaka192fsimple, NID_sphincsharaka192fsimple, "sphincsharaka192fsimple", "OpenSSL SPHINCS+-Haraka-192f-simple algorithm")
++DEFINE_OQS_EVP_METHODS(p384_sphincsharaka192fsimple, NID_p384_sphincsharaka192fsimple, "p384_sphincsharaka192fsimple", "OpenSSL ECDSA p384 SPHINCS+-Haraka-192f-simple algorithm")
++DEFINE_OQS_EVP_METHODS(sphincsharaka256fsimple, NID_sphincsharaka256fsimple, "sphincsharaka256fsimple", "OpenSSL SPHINCS+-Haraka-256f-simple algorithm")
++DEFINE_OQS_EVP_METHODS(p521_sphincsharaka256fsimple, NID_p521_sphincsharaka256fsimple, "p521_sphincsharaka256fsimple", "OpenSSL ECDSA p521 SPHINCS+-Haraka-256f-simple algorithm")
+ DEFINE_OQS_EVP_METHODS(sphincssha256128frobust, NID_sphincssha256128frobust, "sphincssha256128frobust", "OpenSSL SPHINCS+-SHA256-128f-robust algorithm")
+ DEFINE_OQS_EVP_METHODS(p256_sphincssha256128frobust, NID_p256_sphincssha256128frobust, "p256_sphincssha256128frobust", "OpenSSL ECDSA p256 SPHINCS+-SHA256-128f-robust algorithm")
+ DEFINE_OQS_EVP_METHODS(rsa3072_sphincssha256128frobust, NID_rsa3072_sphincssha256128frobust, "rsa3072_sphincssha256128frobust", "OpenSSL RSA3072 SPHINCS+-SHA256-128f-robust algorithm")
+diff --git a/crypto/evp/pmeth_lib.c b/crypto/evp/pmeth_lib.c
+index 47845eddca..6c32f7ce21 100644
+--- a/crypto/evp/pmeth_lib.c
++++ b/crypto/evp/pmeth_lib.c
+@@ -88,17 +88,13 @@ static const EVP_PKEY_METHOD *standard_methods[] = {
+     &rsa3072_falcon512_pkey_meth,
+     &falcon1024_pkey_meth,
+     &p521_falcon1024_pkey_meth,
+-    &picnicl1full_pkey_meth,
+-    &p256_picnicl1full_pkey_meth,
+-    &rsa3072_picnicl1full_pkey_meth,
+-    &picnic3l1_pkey_meth,
+-    &p256_picnic3l1_pkey_meth,
+-    &rsa3072_picnic3l1_pkey_meth,
+-    &rainbowVclassic_pkey_meth,
+-    &p521_rainbowVclassic_pkey_meth,
+-    &sphincsharaka128frobust_pkey_meth,
+-    &p256_sphincsharaka128frobust_pkey_meth,
+-    &rsa3072_sphincsharaka128frobust_pkey_meth,
++    &sphincsharaka128fsimple_pkey_meth,
++    &p256_sphincsharaka128fsimple_pkey_meth,
++    &rsa3072_sphincsharaka128fsimple_pkey_meth,
++    &sphincsharaka192fsimple_pkey_meth,
++    &p384_sphincsharaka192fsimple_pkey_meth,
++    &sphincsharaka256fsimple_pkey_meth,
++    &p521_sphincsharaka256fsimple_pkey_meth,
+     &sphincssha256128frobust_pkey_meth,
+     &p256_sphincssha256128frobust_pkey_meth,
+     &rsa3072_sphincssha256128frobust_pkey_meth,
+diff --git a/crypto/objects/obj_mac.num b/crypto/objects/obj_mac.num
+index d6ed563eb7..6d53569988 100644
+--- a/crypto/objects/obj_mac.num
++++ b/crypto/objects/obj_mac.num
+@@ -1218,81 +1218,61 @@ kyber90s1024		1218
+ hqc128		1219
+ hqc192		1220
+ hqc256		1221
+-ntrulpr653		1222
+-ntrulpr761		1223
+-ntrulpr857		1224
+-ntrulpr1277		1225
+-sntrup653		1226
+-sntrup761		1227
+-sntrup857		1228
+-sntrup1277		1229
+-p256_frodo640aes		1231
+-p256_frodo640shake		1232
+-p384_frodo976aes		1233
+-p384_frodo976shake		1234
+-p521_frodo1344aes		1235
+-p521_frodo1344shake		1236
+-p256_kyber512		1237
+-p384_kyber768		1238
+-p521_kyber1024		1239
+-p256_ntru_hps2048509		1240
+-p384_ntru_hps2048677		1241
+-p521_ntru_hps4096821		1242
+-p521_ntru_hps40961229		1243
+-p384_ntru_hrss701		1244
+-p521_ntru_hrss1373		1245
+-p256_lightsaber		1246
+-p384_saber		1247
+-p521_firesaber		1248
+-p256_bikel1		1249
+-p384_bikel3		1250
+-p256_kyber90s512		1251
+-p384_kyber90s768		1252
+-p521_kyber90s1024		1253
+-p256_hqc128		1254
+-p384_hqc192		1255
+-p521_hqc256		1256
+-p256_ntrulpr653		1257
+-p256_ntrulpr761		1258
+-p384_ntrulpr857		1259
+-p521_ntrulpr1277		1260
+-p256_sntrup653		1261
+-p256_sntrup761		1262
+-p384_sntrup857		1263
+-p521_sntrup1277		1264
+-dilithium2		1265
+-p256_dilithium2		1266
+-rsa3072_dilithium2		1267
+-dilithium3		1268
+-p384_dilithium3		1269
+-dilithium5		1270
+-p521_dilithium5		1271
+-dilithium2_aes		1272
+-p256_dilithium2_aes		1273
+-rsa3072_dilithium2_aes		1274
+-dilithium3_aes		1275
+-p384_dilithium3_aes		1276
+-dilithium5_aes		1277
+-p521_dilithium5_aes		1278
+-falcon512		1279
+-p256_falcon512		1280
+-rsa3072_falcon512		1281
+-falcon1024		1282
+-p521_falcon1024		1283
+-picnicl1full		1284
+-p256_picnicl1full		1285
+-rsa3072_picnicl1full		1286
+-picnic3l1		1287
+-p256_picnic3l1		1288
+-rsa3072_picnic3l1		1289
+-rainbowVclassic		1290
+-p521_rainbowVclassic		1291
+-sphincsharaka128frobust		1292
+-p256_sphincsharaka128frobust		1293
+-rsa3072_sphincsharaka128frobust		1294
+-sphincssha256128frobust		1295
+-p256_sphincssha256128frobust		1296
+-rsa3072_sphincssha256128frobust		1297
+-sphincsshake256128frobust		1298
+-p256_sphincsshake256128frobust		1299
+-rsa3072_sphincsshake256128frobust		1300
++p256_frodo640aes            1223
++p256_frodo640shake            1224
++p384_frodo976aes            1225
++p384_frodo976shake            1226
++p521_frodo1344aes            1227
++p521_frodo1344shake            1228
++p256_kyber512            1229
++p384_kyber768            1230
++p521_kyber1024            1231
++p256_ntru_hps2048509            1232
++p384_ntru_hps2048677            1233
++p521_ntru_hps4096821            1234
++p521_ntru_hps40961229            1235
++p384_ntru_hrss701            1236
++p521_ntru_hrss1373            1237
++p256_lightsaber            1238
++p384_saber            1239
++p521_firesaber            1240
++p256_bikel1            1241
++p384_bikel3            1242
++p256_kyber90s512            1243
++p384_kyber90s768            1244
++p521_kyber90s1024            1245
++p256_hqc128            1246
++p384_hqc192            1247
++p521_hqc256            1248
++dilithium2		1249
++p256_dilithium2		1250
++rsa3072_dilithium2		1251
++dilithium3		1252
++p384_dilithium3		1253
++dilithium5		1254
++p521_dilithium5		1255
++dilithium2_aes		1256
++p256_dilithium2_aes		1257
++rsa3072_dilithium2_aes		1258
++dilithium3_aes		1259
++p384_dilithium3_aes		1260
++dilithium5_aes		1261
++p521_dilithium5_aes		1262
++falcon512		1263
++p256_falcon512		1264
++rsa3072_falcon512		1265
++falcon1024		1266
++p521_falcon1024		1267
++sphincsharaka128fsimple		1268
++p256_sphincsharaka128fsimple		1269
++rsa3072_sphincsharaka128fsimple		1270
++sphincsharaka192fsimple		1271
++p384_sphincsharaka192fsimple		1272
++sphincsharaka256fsimple		1273
++p521_sphincsharaka256fsimple		1274
++sphincssha256128frobust		1275
++p256_sphincssha256128frobust		1276
++rsa3072_sphincssha256128frobust		1277
++sphincsshake256128frobust		1278
++p256_sphincsshake256128frobust		1279
++rsa3072_sphincsshake256128frobust		1280
+diff --git a/crypto/objects/obj_xref.txt b/crypto/objects/obj_xref.txt
+index 33b200ee5a..7ba11cadbc 100644
+--- a/crypto/objects/obj_xref.txt
++++ b/crypto/objects/obj_xref.txt
+@@ -43,17 +43,13 @@ p256_falcon512	sha512	p256_falcon512
+ rsa3072_falcon512	sha512	rsa3072_falcon512
+ falcon1024	sha512	falcon1024
+ p521_falcon1024	sha512	p521_falcon1024
+-picnicl1full	sha512	picnicl1full
+-p256_picnicl1full	sha512	p256_picnicl1full
+-rsa3072_picnicl1full	sha512	rsa3072_picnicl1full
+-picnic3l1	sha512	picnic3l1
+-p256_picnic3l1	sha512	p256_picnic3l1
+-rsa3072_picnic3l1	sha512	rsa3072_picnic3l1
+-rainbowVclassic	sha512	rainbowVclassic
+-p521_rainbowVclassic	sha512	p521_rainbowVclassic
+-sphincsharaka128frobust	sha512	sphincsharaka128frobust
+-p256_sphincsharaka128frobust	sha512	p256_sphincsharaka128frobust
+-rsa3072_sphincsharaka128frobust	sha512	rsa3072_sphincsharaka128frobust
++sphincsharaka128fsimple	sha512	sphincsharaka128fsimple
++p256_sphincsharaka128fsimple	sha512	p256_sphincsharaka128fsimple
++rsa3072_sphincsharaka128fsimple	sha512	rsa3072_sphincsharaka128fsimple
++sphincsharaka192fsimple	sha512	sphincsharaka192fsimple
++p384_sphincsharaka192fsimple	sha512	p384_sphincsharaka192fsimple
++sphincsharaka256fsimple	sha512	sphincsharaka256fsimple
++p521_sphincsharaka256fsimple	sha512	p521_sphincsharaka256fsimple
+ sphincssha256128frobust	sha512	sphincssha256128frobust
+ p256_sphincssha256128frobust	sha512	p256_sphincssha256128frobust
+ rsa3072_sphincssha256128frobust	sha512	rsa3072_sphincssha256128frobust
+diff --git a/crypto/objects/objects.txt b/crypto/objects/objects.txt
+index c8e33a88aa..8fb4cee9de 100644
+--- a/crypto/objects/objects.txt
++++ b/crypto/objects/objects.txt
+@@ -1729,22 +1729,6 @@ dstu4145le 2 9 : uacurve9 : DSTU curve 9
+  : p384_hqc192 : p384_hqc192
+  : hqc256 : hqc256
+  : p521_hqc256 : p521_hqc256
+- : ntrulpr653 : ntrulpr653
+- : p256_ntrulpr653 : p256_ntrulpr653
+- : ntrulpr761 : ntrulpr761
+- : p256_ntrulpr761 : p256_ntrulpr761
+- : ntrulpr857 : ntrulpr857
+- : p384_ntrulpr857 : p384_ntrulpr857
+- : ntrulpr1277 : ntrulpr1277
+- : p521_ntrulpr1277 : p521_ntrulpr1277
+- : sntrup653 : sntrup653
+- : p256_sntrup653 : p256_sntrup653
+- : sntrup761 : sntrup761
+- : p256_sntrup761 : p256_sntrup761
+- : sntrup857 : sntrup857
+- : p384_sntrup857 : p384_sntrup857
+- : sntrup1277 : sntrup1277
+- : p521_sntrup1277 : p521_sntrup1277
+ ##### OQS_TEMPLATE_FRAGMENT_LIST_KEMS_END
+ 
+ ##### OQS_TEMPLATE_FRAGMENT_ASSIGN_SIG_OIDS_START
+@@ -1767,17 +1751,13 @@ dstu4145le 2 9 : uacurve9 : DSTU curve 9
+ 1 3 9999 3 3 : rsa3072_falcon512 : rsa3072_falcon512
+ 1 3 9999 3 4 : falcon1024 : falcon1024
+ 1 3 9999 3 5 : p521_falcon1024 : p521_falcon1024
+-1 3 6 1 4 1 311 89 2 1 7 : picnicl1full : picnicl1full
+-1 3 6 1 4 1 311 89 2 1 8 : p256_picnicl1full : p256_picnicl1full
+-1 3 6 1 4 1 311 89 2 1 9 : rsa3072_picnicl1full : rsa3072_picnicl1full
+-1 3 6 1 4 1 311 89 2 1 21 : picnic3l1 : picnic3l1
+-1 3 6 1 4 1 311 89 2 1 22 : p256_picnic3l1 : p256_picnic3l1
+-1 3 6 1 4 1 311 89 2 1 23 : rsa3072_picnic3l1 : rsa3072_picnic3l1
+-1 3 9999 5 3 1 1 : rainbowVclassic : rainbowVclassic
+-1 3 9999 5 3 2 1 : p521_rainbowVclassic : p521_rainbowVclassic
+-1 3 9999 6 1 1 : sphincsharaka128frobust : sphincsharaka128frobust
+-1 3 9999 6 1 2 : p256_sphincsharaka128frobust : p256_sphincsharaka128frobust
+-1 3 9999 6 1 3 : rsa3072_sphincsharaka128frobust : rsa3072_sphincsharaka128frobust
++1 3 9999 6 1 4 : sphincsharaka128fsimple : sphincsharaka128fsimple
++1 3 9999 6 1 5 : p256_sphincsharaka128fsimple : p256_sphincsharaka128fsimple
++1 3 9999 6 1 6 : rsa3072_sphincsharaka128fsimple : rsa3072_sphincsharaka128fsimple
++1 3 9999 6 2 3 : sphincsharaka192fsimple : sphincsharaka192fsimple
++1 3 9999 6 2 4 : p384_sphincsharaka192fsimple : p384_sphincsharaka192fsimple
++1 3 9999 6 3 3 : sphincsharaka256fsimple : sphincsharaka256fsimple
++1 3 9999 6 3 4 : p521_sphincsharaka256fsimple : p521_sphincsharaka256fsimple
+ 1 3 9999 6 4 1 : sphincssha256128frobust : sphincssha256128frobust
+ 1 3 9999 6 4 2 : p256_sphincssha256128frobust : p256_sphincssha256128frobust
+ 1 3 9999 6 4 3 : rsa3072_sphincssha256128frobust : rsa3072_sphincssha256128frobust
+diff --git a/crypto/x509/x509type.c b/crypto/x509/x509type.c
+index 1c8c4cbaed..6fa2b7214f 100644
+--- a/crypto/x509/x509type.c
++++ b/crypto/x509/x509type.c
+@@ -67,17 +67,13 @@ int X509_certificate_type(const X509 *x, const EVP_PKEY *pkey)
+     case EVP_PKEY_RSA3072_FALCON512:
+     case EVP_PKEY_FALCON1024:
+     case EVP_PKEY_P521_FALCON1024:
+-    case EVP_PKEY_PICNICL1FULL:
+-    case EVP_PKEY_P256_PICNICL1FULL:
+-    case EVP_PKEY_RSA3072_PICNICL1FULL:
+-    case EVP_PKEY_PICNIC3L1:
+-    case EVP_PKEY_P256_PICNIC3L1:
+-    case EVP_PKEY_RSA3072_PICNIC3L1:
+-    case EVP_PKEY_RAINBOWVCLASSIC:
+-    case EVP_PKEY_P521_RAINBOWVCLASSIC:
+-    case EVP_PKEY_SPHINCSHARAKA128FROBUST:
+-    case EVP_PKEY_P256_SPHINCSHARAKA128FROBUST:
+-    case EVP_PKEY_RSA3072_SPHINCSHARAKA128FROBUST:
++    case EVP_PKEY_SPHINCSHARAKA128FSIMPLE:
++    case EVP_PKEY_P256_SPHINCSHARAKA128FSIMPLE:
++    case EVP_PKEY_RSA3072_SPHINCSHARAKA128FSIMPLE:
++    case EVP_PKEY_SPHINCSHARAKA192FSIMPLE:
++    case EVP_PKEY_P384_SPHINCSHARAKA192FSIMPLE:
++    case EVP_PKEY_SPHINCSHARAKA256FSIMPLE:
++    case EVP_PKEY_P521_SPHINCSHARAKA256FSIMPLE:
+     case EVP_PKEY_SPHINCSSHA256128FROBUST:
+     case EVP_PKEY_P256_SPHINCSSHA256128FROBUST:
+     case EVP_PKEY_RSA3072_SPHINCSSHA256128FROBUST:
+diff --git a/include/crypto/asn1.h b/include/crypto/asn1.h
+index 8714657085..958f306cb8 100644
+--- a/include/crypto/asn1.h
++++ b/include/crypto/asn1.h
+@@ -106,17 +106,13 @@ extern const EVP_PKEY_ASN1_METHOD p256_falcon512_asn1_meth;
+ extern const EVP_PKEY_ASN1_METHOD rsa3072_falcon512_asn1_meth;
+ extern const EVP_PKEY_ASN1_METHOD falcon1024_asn1_meth;
+ extern const EVP_PKEY_ASN1_METHOD p521_falcon1024_asn1_meth;
+-extern const EVP_PKEY_ASN1_METHOD picnicl1full_asn1_meth;
+-extern const EVP_PKEY_ASN1_METHOD p256_picnicl1full_asn1_meth;
+-extern const EVP_PKEY_ASN1_METHOD rsa3072_picnicl1full_asn1_meth;
+-extern const EVP_PKEY_ASN1_METHOD picnic3l1_asn1_meth;
+-extern const EVP_PKEY_ASN1_METHOD p256_picnic3l1_asn1_meth;
+-extern const EVP_PKEY_ASN1_METHOD rsa3072_picnic3l1_asn1_meth;
+-extern const EVP_PKEY_ASN1_METHOD rainbowVclassic_asn1_meth;
+-extern const EVP_PKEY_ASN1_METHOD p521_rainbowVclassic_asn1_meth;
+-extern const EVP_PKEY_ASN1_METHOD sphincsharaka128frobust_asn1_meth;
+-extern const EVP_PKEY_ASN1_METHOD p256_sphincsharaka128frobust_asn1_meth;
+-extern const EVP_PKEY_ASN1_METHOD rsa3072_sphincsharaka128frobust_asn1_meth;
++extern const EVP_PKEY_ASN1_METHOD sphincsharaka128fsimple_asn1_meth;
++extern const EVP_PKEY_ASN1_METHOD p256_sphincsharaka128fsimple_asn1_meth;
++extern const EVP_PKEY_ASN1_METHOD rsa3072_sphincsharaka128fsimple_asn1_meth;
++extern const EVP_PKEY_ASN1_METHOD sphincsharaka192fsimple_asn1_meth;
++extern const EVP_PKEY_ASN1_METHOD p384_sphincsharaka192fsimple_asn1_meth;
++extern const EVP_PKEY_ASN1_METHOD sphincsharaka256fsimple_asn1_meth;
++extern const EVP_PKEY_ASN1_METHOD p521_sphincsharaka256fsimple_asn1_meth;
+ extern const EVP_PKEY_ASN1_METHOD sphincssha256128frobust_asn1_meth;
+ extern const EVP_PKEY_ASN1_METHOD p256_sphincssha256128frobust_asn1_meth;
+ extern const EVP_PKEY_ASN1_METHOD rsa3072_sphincssha256128frobust_asn1_meth;
+diff --git a/include/crypto/evp.h b/include/crypto/evp.h
+index a0b23e48d4..71e2ea7c07 100644
+--- a/include/crypto/evp.h
++++ b/include/crypto/evp.h
+@@ -132,17 +132,13 @@ extern const EVP_PKEY_METHOD p256_falcon512_pkey_meth;
+ extern const EVP_PKEY_METHOD rsa3072_falcon512_pkey_meth;
+ extern const EVP_PKEY_METHOD falcon1024_pkey_meth;
+ extern const EVP_PKEY_METHOD p521_falcon1024_pkey_meth;
+-extern const EVP_PKEY_METHOD picnicl1full_pkey_meth;
+-extern const EVP_PKEY_METHOD p256_picnicl1full_pkey_meth;
+-extern const EVP_PKEY_METHOD rsa3072_picnicl1full_pkey_meth;
+-extern const EVP_PKEY_METHOD picnic3l1_pkey_meth;
+-extern const EVP_PKEY_METHOD p256_picnic3l1_pkey_meth;
+-extern const EVP_PKEY_METHOD rsa3072_picnic3l1_pkey_meth;
+-extern const EVP_PKEY_METHOD rainbowVclassic_pkey_meth;
+-extern const EVP_PKEY_METHOD p521_rainbowVclassic_pkey_meth;
+-extern const EVP_PKEY_METHOD sphincsharaka128frobust_pkey_meth;
+-extern const EVP_PKEY_METHOD p256_sphincsharaka128frobust_pkey_meth;
+-extern const EVP_PKEY_METHOD rsa3072_sphincsharaka128frobust_pkey_meth;
++extern const EVP_PKEY_METHOD sphincsharaka128fsimple_pkey_meth;
++extern const EVP_PKEY_METHOD p256_sphincsharaka128fsimple_pkey_meth;
++extern const EVP_PKEY_METHOD rsa3072_sphincsharaka128fsimple_pkey_meth;
++extern const EVP_PKEY_METHOD sphincsharaka192fsimple_pkey_meth;
++extern const EVP_PKEY_METHOD p384_sphincsharaka192fsimple_pkey_meth;
++extern const EVP_PKEY_METHOD sphincsharaka256fsimple_pkey_meth;
++extern const EVP_PKEY_METHOD p521_sphincsharaka256fsimple_pkey_meth;
+ extern const EVP_PKEY_METHOD sphincssha256128frobust_pkey_meth;
+ extern const EVP_PKEY_METHOD p256_sphincssha256128frobust_pkey_meth;
+ extern const EVP_PKEY_METHOD rsa3072_sphincssha256128frobust_pkey_meth;
+diff --git a/include/openssl/evp.h b/include/openssl/evp.h
+index 92f4890005..f947fd30fa 100644
+--- a/include/openssl/evp.h
++++ b/include/openssl/evp.h
+@@ -83,26 +83,22 @@
+ # define EVP_PKEY_RSA3072_FALCON512 NID_rsa3072_falcon512
+ # define EVP_PKEY_FALCON1024 NID_falcon1024
+ # define EVP_PKEY_P521_FALCON1024 NID_p521_falcon1024
+-# define EVP_PKEY_PICNICL1FULL NID_picnicl1full
+-# define EVP_PKEY_P256_PICNICL1FULL NID_p256_picnicl1full
+-# define EVP_PKEY_RSA3072_PICNICL1FULL NID_rsa3072_picnicl1full
+-# define EVP_PKEY_PICNIC3L1 NID_picnic3l1
+-# define EVP_PKEY_P256_PICNIC3L1 NID_p256_picnic3l1
+-# define EVP_PKEY_RSA3072_PICNIC3L1 NID_rsa3072_picnic3l1
+-# define EVP_PKEY_RAINBOWVCLASSIC NID_rainbowVclassic
+-# define EVP_PKEY_P521_RAINBOWVCLASSIC NID_p521_rainbowVclassic
+-# define EVP_PKEY_SPHINCSHARAKA128FROBUST NID_sphincsharaka128frobust
+-# define EVP_PKEY_P256_SPHINCSHARAKA128FROBUST NID_p256_sphincsharaka128frobust
+-# define EVP_PKEY_RSA3072_SPHINCSHARAKA128FROBUST NID_rsa3072_sphincsharaka128frobust
++# define EVP_PKEY_SPHINCSHARAKA128FSIMPLE NID_sphincsharaka128fsimple
++# define EVP_PKEY_P256_SPHINCSHARAKA128FSIMPLE NID_p256_sphincsharaka128fsimple
++# define EVP_PKEY_RSA3072_SPHINCSHARAKA128FSIMPLE NID_rsa3072_sphincsharaka128fsimple
++# define EVP_PKEY_SPHINCSHARAKA192FSIMPLE NID_sphincsharaka192fsimple
++# define EVP_PKEY_P384_SPHINCSHARAKA192FSIMPLE NID_p384_sphincsharaka192fsimple
++# define EVP_PKEY_SPHINCSHARAKA256FSIMPLE NID_sphincsharaka256fsimple
++# define EVP_PKEY_P521_SPHINCSHARAKA256FSIMPLE NID_p521_sphincsharaka256fsimple
+ # define EVP_PKEY_SPHINCSSHA256128FROBUST NID_sphincssha256128frobust
+ # define EVP_PKEY_P256_SPHINCSSHA256128FROBUST NID_p256_sphincssha256128frobust
+ # define EVP_PKEY_RSA3072_SPHINCSSHA256128FROBUST NID_rsa3072_sphincssha256128frobust
+ # define EVP_PKEY_SPHINCSSHAKE256128FROBUST NID_sphincsshake256128frobust
+ # define EVP_PKEY_P256_SPHINCSSHAKE256128FROBUST NID_p256_sphincsshake256128frobust
+ # define EVP_PKEY_RSA3072_SPHINCSSHAKE256128FROBUST NID_rsa3072_sphincsshake256128frobust
+-#define OQS_OPENSSL_SIG_algs_length 36
+-#define OQS_OPENSSL_KEM_algs_length 34
+-#define IS_OQS_OPENSSL_KEM_NID(a) ((a >= 0x01FF) && (a <= NID_p521_sntrup1277))
++#define OQS_OPENSSL_SIG_algs_length 32
++#define OQS_OPENSSL_KEM_algs_length 26
++#define IS_OQS_OPENSSL_KEM_NID(a) ((a >= 0x01FF) && (a <= NID_p521_hqc256))
+ #define IS_OQS_OPENSSL_SIG_NID(a) ((a >= NID_dilithium2) && (a <= NID_rsa3072_sphincsshake256128frobust))
+ /////// OQS_TEMPLATE_FRAGMENT_DEFINE_EVP_PKEYS_END
+ const char *OQSKEM_options(void);
+diff --git a/oqs-interop-test/common.py b/oqs-interop-test/common.py
+index 86cb5f1e88..c0eae6fc00 100644
+--- a/oqs-interop-test/common.py
++++ b/oqs-interop-test/common.py
+@@ -16,9 +16,9 @@ TLS1_3_VERSION=772 #0x0304
+ key_exchanges = [
+ ##### OQS_TEMPLATE_FRAGMENT_KEX_ALGS_START
+     # post-quantum key exchanges
+-    'frodo640aes','frodo640shake','frodo976aes','frodo976shake','frodo1344aes','frodo1344shake','kyber512','kyber768','kyber1024','ntru_hps2048509','ntru_hps2048677','ntru_hps4096821','ntru_hps40961229','ntru_hrss701','ntru_hrss1373','lightsaber','saber','firesaber','bikel1','bikel3','kyber90s512','kyber90s768','kyber90s1024','hqc128','hqc192','hqc256','ntrulpr653','ntrulpr761','ntrulpr857','ntrulpr1277','sntrup653','sntrup761','sntrup857','sntrup1277',
++    'frodo640aes','frodo640shake','frodo976aes','frodo976shake','frodo1344aes','frodo1344shake','kyber512','kyber768','kyber1024','ntru_hps2048509','ntru_hps2048677','ntru_hps4096821','ntru_hps40961229','ntru_hrss701','ntru_hrss1373','lightsaber','saber','firesaber','bikel1','bikel3','kyber90s512','kyber90s768','kyber90s1024','hqc128','hqc192','hqc256',
+     # post-quantum + classical key exchanges
+-    'p256_frodo640aes','p256_frodo640shake','p384_frodo976aes','p384_frodo976shake','p521_frodo1344aes','p521_frodo1344shake','p256_kyber512','p384_kyber768','p521_kyber1024','p256_ntru_hps2048509','p384_ntru_hps2048677','p521_ntru_hps4096821','p521_ntru_hps40961229','p384_ntru_hrss701','p521_ntru_hrss1373','p256_lightsaber','p384_saber','p521_firesaber','p256_bikel1','p384_bikel3','p256_kyber90s512','p384_kyber90s768','p521_kyber90s1024','p256_hqc128','p384_hqc192','p521_hqc256','p256_ntrulpr653','p256_ntrulpr761','p384_ntrulpr857','p521_ntrulpr1277','p256_sntrup653','p256_sntrup761','p384_sntrup857','p521_sntrup1277',
++    'p256_frodo640aes','p256_frodo640shake','p384_frodo976aes','p384_frodo976shake','p521_frodo1344aes','p521_frodo1344shake','p256_kyber512','p384_kyber768','p521_kyber1024','p256_ntru_hps2048509','p384_ntru_hps2048677','p521_ntru_hps4096821','p521_ntru_hps40961229','p384_ntru_hrss701','p521_ntru_hrss1373','p256_lightsaber','p384_saber','p521_firesaber','p256_bikel1','p384_bikel3','p256_kyber90s512','p384_kyber90s768','p521_kyber90s1024','p256_hqc128','p384_hqc192','p521_hqc256',
+ ##### OQS_TEMPLATE_FRAGMENT_KEX_ALGS_END
+ ]
+ 
+@@ -32,10 +32,9 @@ signatures = [
+     'dilithium5_aes',
+     'falcon512',
+     'falcon1024',
+-    'picnicl1full',
+-    'picnic3l1',
+-    'rainbowVclassic',
+-    'sphincsharaka128frobust',
++    'sphincsharaka128fsimple',
++    'sphincsharaka192fsimple',
++    'sphincsharaka256fsimple',
+     'sphincssha256128frobust',
+     'sphincsshake256128frobust',
+ ##### OQS_TEMPLATE_FRAGMENT_PQ_SIG_ALGS_END
+diff --git a/oqs-template/generate.yml b/oqs-template/generate.yml
+index fc1e19508c..ac375dc28f 100644
+--- a/oqs-template/generate.yml
++++ b/oqs-template/generate.yml
+@@ -393,64 +393,6 @@ kems:
+     nid: '0x022E'
+     nid_hybrid: '0x2F2E'
+     oqs_alg: 'OQS_KEM_alg_hqc_256'
+-  -
+-    family: 'NTRU-Prime'
+-    name_group: 'ntrulpr653'
+-    nid: '0x022F'
+-    nid_hybrid: '0x2F2F'
+-    oqs_alg: 'OQS_KEM_alg_ntruprime_ntrulpr653'
+-  -
+-    family: 'NTRU-Prime'
+-    name_group: 'ntrulpr761'
+-    nid: '0x0230'
+-    nid_hybrid: '0x2F43'
+-    extra_nids:
+-      old:
+-        - implementation_version: Round 3 p384 hybrid
+-          nist-round: 3
+-          nid: '0x2F30'
+-    oqs_alg: 'OQS_KEM_alg_ntruprime_ntrulpr761'
+-  -
+-    family: 'NTRU-Prime'
+-    name_group: 'ntrulpr857'
+-    nid: '0x0231'
+-    nid_hybrid: '0x2F31'
+-    oqs_alg: 'OQS_KEM_alg_ntruprime_ntrulpr857'
+-  -
+-    family: 'NTRU-Prime'
+-    name_group: 'ntrulpr1277'
+-    nid: '0x0241'
+-    nid_hybrid: '0x2F41'
+-    oqs_alg: 'OQS_KEM_alg_ntruprime_ntrulpr1277'
+-  -
+-    family: 'NTRU-Prime'
+-    name_group: 'sntrup653'
+-    nid: '0x0232'
+-    nid_hybrid: '0x2F32'
+-    oqs_alg: 'OQS_KEM_alg_ntruprime_sntrup653'
+-  -
+-    family: 'NTRU-Prime'
+-    name_group: 'sntrup761'
+-    nid: '0x0233'
+-    nid_hybrid: '0x2F44'
+-    extra_nids:
+-      old:
+-        - implementation_version: Round 3 p384 hybrid
+-          nist-round: 3
+-          nid: '0x2F33'
+-    oqs_alg: 'OQS_KEM_alg_ntruprime_sntrup761'
+-  -
+-    family: 'NTRU-Prime'
+-    name_group: 'sntrup857'
+-    nid: '0x0234'
+-    nid_hybrid: '0x2F34'
+-    oqs_alg: 'OQS_KEM_alg_ntruprime_sntrup857'
+-  -
+-    family: 'NTRU-Prime'
+-    name_group: 'sntrup1277'
+-    nid: '0x0242'
+-    nid_hybrid: '0x2F42'
+-    oqs_alg: 'OQS_KEM_alg_ntruprime_sntrup1277'
+ 
+ kem_nid_end: '0x0250'
+ kem_nid_hybrid_end: '0x2FFF'
+@@ -606,218 +548,6 @@ sigs:
+                     'pretty_name': 'ECDSA p521',
+                     'oid': '1.3.9999.3.5',
+                     'code_point': '0xfe0f'}]
+-  -
+-    # iso (1)
+-    # identified-organization (3)
+-    # dod (6)
+-    # internet (1)
+-    # private (4)
+-    # enterprise (1)
+-    # Microsoft (311)
+-    # MSRCrypto (89)
+-    # PQC (2)
+-    # picnic (1)
+-    family: 'Picnic'
+-    variants:
+-      -
+-        name: 'picnicl1fs'
+-        pretty_name: 'Picnic L1 FS'
+-        oqs_meth: 'OQS_SIG_alg_picnic_L1_FS'
+-        oid: '1.3.6.1.4.1.311.89.2.1.1'
+-        code_point: '0xfe15'
+-        enable: false
+-        mix_with: [{'name': 'p256',
+-                    'pretty_name': 'ECDSA p256',
+-                    'oid': '1.3.6.1.4.1.311.89.2.1.2',
+-                    'code_point': '0xfe16'},
+-                   {'name': 'rsa3072',
+-                    'pretty_name': 'RSA3072',
+-                    'oid': '1.3.6.1.4.1.311.89.2.1.3',
+-                    'code_point': '0xfe17'}]
+-      -
+-        name: 'picnicl1ur'
+-        pretty_name: 'Picnic L1 UR'
+-        oqs_meth: 'OQS_SIG_alg_picnic_L1_UR'
+-        oid: '1.3.6.1.4.1.311.89.2.1.4'
+-        code_point: '0xfe18'
+-        enable: false
+-        mix_with: [{'name': 'p256',
+-                    'pretty_name': 'ECDSA p256',
+-                    'oid': '1.3.6.1.4.1.311.89.2.1.5',
+-                    'code_point': '0xfe19'},
+-                   {'name': 'rsa3072',
+-                    'pretty_name': 'RSA3072',
+-                    'oid': '1.3.6.1.4.1.311.89.2.1.6',
+-                    'code_point': '0xfe1a'}]
+-      -
+-        name: 'picnicl1full'
+-        pretty_name: 'Picnic L1 full'
+-        oqs_meth: 'OQS_SIG_alg_picnic_L1_full'
+-        oid: '1.3.6.1.4.1.311.89.2.1.7'
+-        code_point: '0xfe96'
+-        enable: true
+-        mix_with: [{'name': 'p256',
+-                    'pretty_name': 'ECDSA p256',
+-                    'oid': '1.3.6.1.4.1.311.89.2.1.8',
+-                    'code_point': '0xfe97'},
+-                   {'name': 'rsa3072',
+-                    'pretty_name': 'RSA3072',
+-                    'oid': '1.3.6.1.4.1.311.89.2.1.9',
+-                    'code_point': '0xfe98'}]
+-      -
+-        name: 'picnic3l1'
+-        pretty_name: 'Picnic3 L1'
+-        oqs_meth: 'OQS_SIG_alg_picnic3_L1'
+-        oid: '1.3.6.1.4.1.311.89.2.1.21'
+-        code_point: '0xfe1b'
+-        enable: true
+-        mix_with: [{'name': 'p256',
+-                    'pretty_name': 'ECDSA p256',
+-                    'oid': '1.3.6.1.4.1.311.89.2.1.22',
+-                    'code_point': '0xfe1c'},
+-                   {'name': 'rsa3072',
+-                    'pretty_name': 'RSA3072',
+-                    'oid': '1.3.6.1.4.1.311.89.2.1.23',
+-                    'code_point': '0xfe1d'}]
+-      -
+-        name: 'picnic3l3'
+-        pretty_name: 'Picnic3 L3'
+-        oqs_meth: 'OQS_SIG_alg_picnic3_L3'
+-        oid: '1.3.6.1.4.1.311.89.2.1.24'
+-        code_point: '0xfe1e'
+-        enable: false
+-        mix_with: [{'name': 'p384',
+-                    'pretty_name': 'ECDSA p384',
+-                    'oid': '1.3.6.1.4.1.311.89.2.1.25',
+-                    'code_point': '0xfe1f'}]
+-      -
+-        name: 'picnic3l5'
+-        pretty_name: 'Picnic3 L5'
+-        oqs_meth: 'OQS_SIG_alg_picnic3_L5'
+-        oid: '1.3.6.1.4.1.311.89.2.1.26'
+-        code_point: '0xfe20'
+-        enable: false
+-        mix_with: [{'name': 'p521',
+-                    'pretty_name': 'ECDSA p521',
+-                    'oid': '1.3.6.1.4.1.311.89.2.1.27',
+-                    'code_point': '0xfe21'}]
+-  -
+-    family: 'Rainbow'
+-    variants:
+-      -
+-        name: 'rainbowIclassic'
+-        pretty_name: 'Rainbow-I-Classic'
+-        oqs_meth: 'OQS_SIG_alg_rainbow_I_classic'
+-        extra_oids:
+-            nist-round: 3
+-            oid: '1.3.9999.5.1.1.1'
+-            code_point: '0xfe27'
+-            mix_with: [{'name': 'p256',
+-                        'pretty_name': 'ECDSA p256',
+-                        'oid': '1.3.9999.5.1.2.1',
+-                        'code_point': '0xfe28'},
+-                       {'name': 'rsa3072',
+-                        'pretty_name': 'RSA3072',
+-                        'oid': '1.3.9999.5.1.3.1',
+-                        'code_point': '0xfe29'}]
+-      -
+-        name: 'rainbowIcircumzenithal'
+-        pretty_name: 'Rainbow-I-Circumzenithal'
+-        oqs_meth: 'OQS_SIG_alg_rainbow_I_circumzenithal'
+-        extra_oids:
+-            nist-round: 3
+-            oid: '1.3.9999.5.1.4.1'
+-            code_point: '0xfe30'
+-            mix_with: [{'name': 'p256',
+-                        'pretty_name': 'ECDSA p256',
+-                        'oid': '1.3.9999.5.1.5.1',
+-                        'code_point': '0xfe31'},
+-                       {'name': 'rsa3072',
+-                        'pretty_name': 'RSA3072',
+-                        'oid': '1.3.9999.5.1.6.1',
+-                        'code_point': '0xfe32'}]
+-      -
+-        name: 'rainbowIcompressed'
+-        pretty_name: 'Rainbow-I-Compressed'
+-        oqs_meth: 'OQS_SIG_alg_rainbow_I_compressed'
+-        extra_oids:
+-            nist-round: 3
+-            oid: '1.3.9999.5.1.7.1'
+-            code_point: '0xfe33'
+-            mix_with: [{'name': 'p256',
+-                        'pretty_name': 'ECDSA p256',
+-                        'oid': '1.3.9999.5.1.8.1',
+-                        'code_point': '0xfe34'},
+-                       {'name': 'rsa3072',
+-                        'pretty_name': 'RSA3072',
+-                        'oid': '1.3.9999.5.1.9.1',
+-                        'code_point': '0xfe35'}]
+-      -
+-        name: 'rainbowIIIclassic'
+-        pretty_name: 'Rainbow-III-Classic'
+-        oqs_meth: 'OQS_SIG_alg_rainbow_III_classic'
+-        oid: '1.3.9999.5.2.1.1'
+-        code_point: '0xfe36'
+-        enable: false
+-        mix_with: [{'name': 'p384',
+-                    'pretty_name': 'ECDSA p256',
+-                    'oid': '1.3.9999.5.2.2.1',
+-                    'code_point': '0xfe37'}]
+-      -
+-        name: 'rainbowIIIcircumzenithal'
+-        pretty_name: 'Rainbow-III-Circumzenithal'
+-        oqs_meth: 'OQS_SIG_alg_rainbow_III_circumzenithal'
+-        oid: '1.3.9999.5.2.3.1'
+-        code_point: '0xfe38'
+-        enable: false
+-        mix_with: [{'name': 'p384',
+-                    'pretty_name': 'ECDSA p384',
+-                    'oid': '1.3.9999.5.2.4.1',
+-                    'code_point': '0xfe39'}]
+-      -
+-        name: 'rainbowIIIcompressed'
+-        pretty_name: 'Rainbow-III-Compressed'
+-        oqs_meth: 'OQS_SIG_alg_rainbow_III_compressed'
+-        oid: '1.3.9999.5.2.5.1'
+-        code_point: '0xfe3a'
+-        enable: false
+-        mix_with: [{'name': 'p384',
+-                    'pretty_name': 'ECDSA p384',
+-                    'oid': '1.3.9999.5.2.6.1',
+-                    'code_point': '0xfe3b'}]
+-      -
+-        name: 'rainbowVclassic'
+-        pretty_name: 'Rainbow-V-Classic'
+-        oqs_meth: 'OQS_SIG_alg_rainbow_V_classic'
+-        oid: '1.3.9999.5.3.1.1'
+-        code_point: '0xfe3c'
+-        enable: true
+-        mix_with: [{'name': 'p521',
+-                    'pretty_name': 'ECDSA p521',
+-                    'oid': '1.3.9999.5.3.2.1',
+-                    'code_point': '0xfe3d'}]
+-      -
+-        name: 'rainbowVcircumzenithal'
+-        pretty_name: 'Rainbow-V-Circumzenithal'
+-        oqs_meth: 'OQS_SIG_alg_rainbow_V_circumzenithal'
+-        oid: '1.3.9999.5.3.3.1'
+-        code_point: '0xfe3e'
+-        enable: false
+-        mix_with: [{'name': 'p521',
+-                    'pretty_name': 'ECDSA p521',
+-                    'oid': '1.3.9999.5.3.4.1',
+-                    'code_point': '0xfe3f'}]
+-      -
+-        name: 'rainbowVcompressed'
+-        pretty_name: 'Rainbow-V-Compressed'
+-        oqs_meth: 'OQS_SIG_alg_rainbow_V_compressed'
+-        oid: '1.3.9999.5.3.5.1'
+-        code_point: '0xfe40'
+-        enable: false
+-        mix_with: [{'name': 'p521',
+-                    'pretty_name': 'ECDSA p521',
+-                    'oid': '1.3.9999.5.3.6.1',
+-                    'code_point': '0xfe41'}]
+   -
+     family: 'SPHINCS-Haraka'
+     variants:
+@@ -827,7 +557,7 @@ sigs:
+         oqs_meth: 'OQS_SIG_alg_sphincs_haraka_128f_robust'
+         oid: '1.3.9999.6.1.1'
+         code_point: '0xfe42'
+-        enable: true
++        enable: false
+         mix_with: [{'name': 'p256',
+                     'pretty_name': 'ECDSA p256',
+                     'oid': '1.3.9999.6.1.2',
+@@ -842,7 +572,7 @@ sigs:
+         oqs_meth: 'OQS_SIG_alg_sphincs_haraka_128f_simple'
+         oid: '1.3.9999.6.1.4'
+         code_point: '0xfe45'
+-        enable: false
++        enable: true
+         mix_with: [{'name': 'p256',
+                     'pretty_name': 'ECDSA p256',
+                     'oid': '1.3.9999.6.1.5',
+@@ -898,7 +628,7 @@ sigs:
+         oqs_meth: 'OQS_SIG_alg_sphincs_haraka_192f_simple'
+         oid: '1.3.9999.6.2.3'
+         code_point: '0xfe50'
+-        enable: false
++        enable: true
+         mix_with: [{'name': 'p384',
+                     'pretty_name': 'ECDSA p384',
+                     'oid': '1.3.9999.6.2.4',
+@@ -942,7 +672,7 @@ sigs:
+         oqs_meth: 'OQS_SIG_alg_sphincs_haraka_256f_simple'
+         oid: '1.3.9999.6.3.3'
+         code_point: '0xfe58'
+-        enable: false
++        enable: true
+         mix_with: [{'name': 'p521',
+                     'pretty_name': 'ECDSA p521',
+                     'oid': '1.3.9999.6.3.4',
+diff --git a/oqs-template/oqs-kem-info.md b/oqs-template/oqs-kem-info.md
+index c279a81f00..198ba9f881 100644
+--- a/oqs-template/oqs-kem-info.md
++++ b/oqs-template/oqs-kem-info.md
+@@ -58,24 +58,6 @@
+ | HQC            | NIST Round 3 submission  | hqc192           |            3 |                    3 | 0x2F2D       | secp384_r1                       |
+ | HQC            | NIST Round 3 submission  | hqc256           |            3 |                    5 | 0x022E       |                                  |
+ | HQC            | NIST Round 3 submission  | hqc256           |            3 |                    5 | 0x2F2E       | secp521_r1                       |
+-| NTRU-Prime     | Round 3 p384 hybrid      | ntrulpr761       |            3 |                    1 | 0x2F30       |                                  |
+-| NTRU-Prime     | Round 3 p384 hybrid      | sntrup761        |            3 |                    1 | 0x2F33       |                                  |
+-| NTRU-Prime     | supercop-20200826        | ntrulpr1277      |            3 |                    5 | 0x0241       |                                  |
+-| NTRU-Prime     | supercop-20200826        | ntrulpr1277      |            3 |                    5 | 0x2F41       | secp521_r1                       |
+-| NTRU-Prime     | supercop-20200826        | ntrulpr653       |            3 |                    1 | 0x022F       |                                  |
+-| NTRU-Prime     | supercop-20200826        | ntrulpr653       |            3 |                    1 | 0x2F2F       | secp256_r1                       |
+-| NTRU-Prime     | supercop-20200826        | ntrulpr761       |            3 |                    1 | 0x0230       |                                  |
+-| NTRU-Prime     | supercop-20200826        | ntrulpr761       |            3 |                    1 | 0x2F43       | secp256_r1                       |
+-| NTRU-Prime     | supercop-20200826        | ntrulpr857       |            3 |                    3 | 0x0231       |                                  |
+-| NTRU-Prime     | supercop-20200826        | ntrulpr857       |            3 |                    3 | 0x2F31       | secp384_r1                       |
+-| NTRU-Prime     | supercop-20200826        | sntrup1277       |            3 |                    5 | 0x0242       |                                  |
+-| NTRU-Prime     | supercop-20200826        | sntrup1277       |            3 |                    5 | 0x2F42       | secp521_r1                       |
+-| NTRU-Prime     | supercop-20200826        | sntrup653        |            3 |                    1 | 0x0232       |                                  |
+-| NTRU-Prime     | supercop-20200826        | sntrup653        |            3 |                    1 | 0x2F32       | secp256_r1                       |
+-| NTRU-Prime     | supercop-20200826        | sntrup761        |            3 |                    1 | 0x0233       |                                  |
+-| NTRU-Prime     | supercop-20200826        | sntrup761        |            3 |                    1 | 0x2F44       | secp256_r1                       |
+-| NTRU-Prime     | supercop-20200826        | sntrup857        |            3 |                    3 | 0x0234       |                                  |
+-| NTRU-Prime     | supercop-20200826        | sntrup857        |            3 |                    3 | 0x2F34       | secp384_r1                       |
+ | NTRU           | NIST Round 3 submission  | ntru_hps2048509  |            3 |                    1 | 0x0214       |                                  |
+ | NTRU           | NIST Round 3 submission  | ntru_hps2048509  |            3 |                    1 | 0x2F14       | secp256_r1                       |
+ | NTRU           | NIST Round 3 submission  | ntru_hps2048677  |            3 |                    3 | 0x0215       |                                  |
+diff --git a/oqs-template/oqs-sig-info.md b/oqs-template/oqs-sig-info.md
+index f4652ae7cd..f835cca884 100644
+--- a/oqs-template/oqs-sig-info.md
++++ b/oqs-template/oqs-sig-info.md
+@@ -1,142 +1,105 @@
+-| Algorithm                                         | Implementation Version   |   NIST round |   Claimed NIST Level | Code Point   | OID                       |
+-|:--------------------------------------------------|:-------------------------|-------------:|---------------------:|:-------------|:--------------------------|
+-| dilithium2                                        | 3.1                      |            3 |                    2 | 0xfea0       | 1.3.6.1.4.1.2.267.7.4.4   |
+-| dilithium2 **hybrid with** p256                   | 3.1                      |            3 |                    2 | 0xfea1       | 1.3.9999.2.7.1            |
+-| dilithium2 **hybrid with** rsa3072                | 3.1                      |            3 |                    2 | 0xfea2       | 1.3.9999.2.7.2            |
+-| dilithium3                                        | 3.1                      |            3 |                    3 | 0xfea3       | 1.3.6.1.4.1.2.267.7.6.5   |
+-| dilithium3 **hybrid with** p384                   | 3.1                      |            3 |                    3 | 0xfea4       | 1.3.9999.2.7.3            |
+-| dilithium5                                        | 3.1                      |            3 |                    5 | 0xfea5       | 1.3.6.1.4.1.2.267.7.8.7   |
+-| dilithium5 **hybrid with** p521                   | 3.1                      |            3 |                    5 | 0xfea6       | 1.3.9999.2.7.4            |
+-| dilithium2_aes                                    | 3.1                      |            3 |                    2 | 0xfea7       | 1.3.6.1.4.1.2.267.11.4.4  |
+-| dilithium2_aes **hybrid with** p256               | 3.1                      |            3 |                    2 | 0xfea8       | 1.3.9999.2.11.1           |
+-| dilithium2_aes **hybrid with** rsa3072            | 3.1                      |            3 |                    2 | 0xfea9       | 1.3.9999.2.11.2           |
+-| dilithium3_aes                                    | 3.1                      |            3 |                    3 | 0xfeaa       | 1.3.6.1.4.1.2.267.11.6.5  |
+-| dilithium3_aes **hybrid with** p384               | 3.1                      |            3 |                    3 | 0xfeab       | 1.3.9999.2.11.3           |
+-| dilithium5_aes                                    | 3.1                      |            3 |                    5 | 0xfeac       | 1.3.6.1.4.1.2.267.11.8.7  |
+-| dilithium5_aes **hybrid with** p521               | 3.1                      |            3 |                    5 | 0xfead       | 1.3.9999.2.11.4           |
+-| falcon512                                         | v1.2                     |            3 |                    1 | 0xfe0b       | 1.3.9999.3.1              |
+-| falcon512 **hybrid with** p256                    | v1.2                     |            3 |                    1 | 0xfe0c       | 1.3.9999.3.2              |
+-| falcon512 **hybrid with** rsa3072                 | v1.2                     |            3 |                    1 | 0xfe0d       | 1.3.9999.3.3              |
+-| falcon1024                                        | v1.2                     |            3 |                    5 | 0xfe0e       | 1.3.9999.3.4              |
+-| falcon1024 **hybrid with** p521                   | v1.2                     |            3 |                    5 | 0xfe0f       | 1.3.9999.3.5              |
+-| picnicl1fs                                        | 3.0.17                   |            3 |                    1 | 0xfe15       | 1.3.6.1.4.1.311.89.2.1.1  |
+-| picnicl1fs **hybrid with** p256                   | 3.0.17                   |            3 |                    1 | 0xfe16       | 1.3.6.1.4.1.311.89.2.1.2  |
+-| picnicl1fs **hybrid with** rsa3072                | 3.0.17                   |            3 |                    1 | 0xfe17       | 1.3.6.1.4.1.311.89.2.1.3  |
+-| picnicl1ur                                        | 3.0.17                   |            3 |                    1 | 0xfe18       | 1.3.6.1.4.1.311.89.2.1.4  |
+-| picnicl1ur **hybrid with** p256                   | 3.0.17                   |            3 |                    1 | 0xfe19       | 1.3.6.1.4.1.311.89.2.1.5  |
+-| picnicl1ur **hybrid with** rsa3072                | 3.0.17                   |            3 |                    1 | 0xfe1a       | 1.3.6.1.4.1.311.89.2.1.6  |
+-| picnicl1full                                      | 3.0.17                   |            3 |                    1 | 0xfe96       | 1.3.6.1.4.1.311.89.2.1.7  |
+-| picnicl1full **hybrid with** p256                 | 3.0.17                   |            3 |                    1 | 0xfe97       | 1.3.6.1.4.1.311.89.2.1.8  |
+-| picnicl1full **hybrid with** rsa3072              | 3.0.17                   |            3 |                    1 | 0xfe98       | 1.3.6.1.4.1.311.89.2.1.9  |
+-| picnic3l1                                         | 3.0.17                   |            3 |                    1 | 0xfe1b       | 1.3.6.1.4.1.311.89.2.1.21 |
+-| picnic3l1 **hybrid with** p256                    | 3.0.17                   |            3 |                    1 | 0xfe1c       | 1.3.6.1.4.1.311.89.2.1.22 |
+-| picnic3l1 **hybrid with** rsa3072                 | 3.0.17                   |            3 |                    1 | 0xfe1d       | 1.3.6.1.4.1.311.89.2.1.23 |
+-| picnic3l3                                         | 3.0.17                   |            3 |                    3 | 0xfe1e       | 1.3.6.1.4.1.311.89.2.1.24 |
+-| picnic3l3 **hybrid with** p384                    | 3.0.17                   |            3 |                    3 | 0xfe1f       | 1.3.6.1.4.1.311.89.2.1.25 |
+-| picnic3l5                                         | 3.0.17                   |            3 |                    5 | 0xfe20       | 1.3.6.1.4.1.311.89.2.1.26 |
+-| picnic3l5 **hybrid with** p521                    | 3.0.17                   |            3 |                    5 | 0xfe21       | 1.3.6.1.4.1.311.89.2.1.27 |
+-| rainbowIclassic                                   | NIST Round 3 submission  |            3 |                    1 | 0xfe27       | 1.3.9999.5.1.1.1          |
+-| rainbowIclassic **hybrid with** p256              | NIST Round 3 submission  |            3 |                    1 | 0xfe28       | 1.3.9999.5.1.2.1          |
+-| rainbowIclassic **hybrid with** rsa3072           | NIST Round 3 submission  |            3 |                    1 | 0xfe29       | 1.3.9999.5.1.3.1          |
+-| rainbowIcircumzenithal                            | NIST Round 3 submission  |            3 |                    1 | 0xfe30       | 1.3.9999.5.1.4.1          |
+-| rainbowIcircumzenithal **hybrid with** p256       | NIST Round 3 submission  |            3 |                    1 | 0xfe31       | 1.3.9999.5.1.5.1          |
+-| rainbowIcircumzenithal **hybrid with** rsa3072    | NIST Round 3 submission  |            3 |                    1 | 0xfe32       | 1.3.9999.5.1.6.1          |
+-| rainbowIcompressed                                | NIST Round 3 submission  |            3 |                    1 | 0xfe33       | 1.3.9999.5.1.7.1          |
+-| rainbowIcompressed **hybrid with** p256           | NIST Round 3 submission  |            3 |                    1 | 0xfe34       | 1.3.9999.5.1.8.1          |
+-| rainbowIcompressed **hybrid with** rsa3072        | NIST Round 3 submission  |            3 |                    1 | 0xfe35       | 1.3.9999.5.1.9.1          |
+-| rainbowIIIclassic                                 | NIST Round 3 submission  |            3 |                    3 | 0xfe36       | 1.3.9999.5.2.1.1          |
+-| rainbowIIIclassic **hybrid with** p384            | NIST Round 3 submission  |            3 |                    3 | 0xfe37       | 1.3.9999.5.2.2.1          |
+-| rainbowIIIcircumzenithal                          | NIST Round 3 submission  |            3 |                    3 | 0xfe38       | 1.3.9999.5.2.3.1          |
+-| rainbowIIIcircumzenithal **hybrid with** p384     | NIST Round 3 submission  |            3 |                    3 | 0xfe39       | 1.3.9999.5.2.4.1          |
+-| rainbowIIIcompressed                              | NIST Round 3 submission  |            3 |                    3 | 0xfe3a       | 1.3.9999.5.2.5.1          |
+-| rainbowIIIcompressed **hybrid with** p384         | NIST Round 3 submission  |            3 |                    3 | 0xfe3b       | 1.3.9999.5.2.6.1          |
+-| rainbowVclassic                                   | NIST Round 3 submission  |            3 |                    5 | 0xfe3c       | 1.3.9999.5.3.1.1          |
+-| rainbowVclassic **hybrid with** p521              | NIST Round 3 submission  |            3 |                    5 | 0xfe3d       | 1.3.9999.5.3.2.1          |
+-| rainbowVcircumzenithal                            | NIST Round 3 submission  |            3 |                    5 | 0xfe3e       | 1.3.9999.5.3.3.1          |
+-| rainbowVcircumzenithal **hybrid with** p521       | NIST Round 3 submission  |            3 |                    5 | 0xfe3f       | 1.3.9999.5.3.4.1          |
+-| rainbowVcompressed                                | NIST Round 3 submission  |            3 |                    5 | 0xfe40       | 1.3.9999.5.3.5.1          |
+-| rainbowVcompressed **hybrid with** p521           | NIST Round 3 submission  |            3 |                    5 | 0xfe41       | 1.3.9999.5.3.6.1          |
+-| sphincsharaka128frobust                           | NIST Round 3 submission  |            3 |                    1 | 0xfe42       | 1.3.9999.6.1.1            |
+-| sphincsharaka128frobust **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe43       | 1.3.9999.6.1.2            |
+-| sphincsharaka128frobust **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe44       | 1.3.9999.6.1.3            |
+-| sphincsharaka128fsimple                           | NIST Round 3 submission  |            3 |                    1 | 0xfe45       | 1.3.9999.6.1.4            |
+-| sphincsharaka128fsimple **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe46       | 1.3.9999.6.1.5            |
+-| sphincsharaka128fsimple **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe47       | 1.3.9999.6.1.6            |
+-| sphincsharaka128srobust                           | NIST Round 3 submission  |            3 |                    1 | 0xfe48       | 1.3.9999.6.1.7            |
+-| sphincsharaka128srobust **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe49       | 1.3.9999.6.1.8            |
+-| sphincsharaka128srobust **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe4a       | 1.3.9999.6.1.9            |
+-| sphincsharaka128ssimple                           | NIST Round 3 submission  |            3 |                    1 | 0xfe4b       | 1.3.9999.6.1.10           |
+-| sphincsharaka128ssimple **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe4c       | 1.3.9999.6.1.11           |
+-| sphincsharaka128ssimple **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe4d       | 1.3.9999.6.1.12           |
+-| sphincsharaka192frobust                           | NIST Round 3 submission  |            3 |                    3 | 0xfe4e       | 1.3.9999.6.2.1            |
+-| sphincsharaka192frobust **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe4f       | 1.3.9999.6.2.2            |
+-| sphincsharaka192fsimple                           | NIST Round 3 submission  |            3 |                    3 | 0xfe50       | 1.3.9999.6.2.3            |
+-| sphincsharaka192fsimple **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe51       | 1.3.9999.6.2.4            |
+-| sphincsharaka192srobust                           | NIST Round 3 submission  |            3 |                    3 | 0xfe52       | 1.3.9999.6.2.5            |
+-| sphincsharaka192srobust **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe53       | 1.3.9999.6.2.6            |
+-| sphincsharaka192ssimple                           | NIST Round 3 submission  |            3 |                    3 | 0xfe54       | 1.3.9999.6.2.7            |
+-| sphincsharaka192ssimple **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe55       | 1.3.9999.6.2.8            |
+-| sphincsharaka256frobust                           | NIST Round 3 submission  |            3 |                    5 | 0xfe56       | 1.3.9999.6.3.1            |
+-| sphincsharaka256frobust **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe57       | 1.3.9999.6.3.2            |
+-| sphincsharaka256fsimple                           | NIST Round 3 submission  |            3 |                    5 | 0xfe58       | 1.3.9999.6.3.3            |
+-| sphincsharaka256fsimple **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe59       | 1.3.9999.6.3.4            |
+-| sphincsharaka256srobust                           | NIST Round 3 submission  |            3 |                    5 | 0xfe5a       | 1.3.9999.6.3.5            |
+-| sphincsharaka256srobust **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe5b       | 1.3.9999.6.3.6            |
+-| sphincsharaka256ssimple                           | NIST Round 3 submission  |            3 |                    5 | 0xfe5c       | 1.3.9999.6.3.7            |
+-| sphincsharaka256ssimple **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe5d       | 1.3.9999.6.3.8            |
+-| sphincssha256128frobust                           | NIST Round 3 submission  |            3 |                    1 | 0xfe5e       | 1.3.9999.6.4.1            |
+-| sphincssha256128frobust **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe5f       | 1.3.9999.6.4.2            |
+-| sphincssha256128frobust **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe60       | 1.3.9999.6.4.3            |
+-| sphincssha256128fsimple                           | NIST Round 3 submission  |            3 |                    1 | 0xfe61       | 1.3.9999.6.4.4            |
+-| sphincssha256128fsimple **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe62       | 1.3.9999.6.4.5            |
+-| sphincssha256128fsimple **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe63       | 1.3.9999.6.4.6            |
+-| sphincssha256128srobust                           | NIST Round 3 submission  |            3 |                    1 | 0xfe64       | 1.3.9999.6.4.7            |
+-| sphincssha256128srobust **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe65       | 1.3.9999.6.4.8            |
+-| sphincssha256128srobust **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe66       | 1.3.9999.6.4.9            |
+-| sphincssha256128ssimple                           | NIST Round 3 submission  |            3 |                    1 | 0xfe67       | 1.3.9999.6.4.10           |
+-| sphincssha256128ssimple **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe68       | 1.3.9999.6.4.11           |
+-| sphincssha256128ssimple **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe69       | 1.3.9999.6.4.12           |
+-| sphincssha256192frobust                           | NIST Round 3 submission  |            3 |                    3 | 0xfe6a       | 1.3.9999.6.5.1            |
+-| sphincssha256192frobust **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe6b       | 1.3.9999.6.5.2            |
+-| sphincssha256192fsimple                           | NIST Round 3 submission  |            3 |                    3 | 0xfe6c       | 1.3.9999.6.5.3            |
+-| sphincssha256192fsimple **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe6d       | 1.3.9999.6.5.4            |
+-| sphincssha256192srobust                           | NIST Round 3 submission  |            3 |                    3 | 0xfe6e       | 1.3.9999.6.5.5            |
+-| sphincssha256192srobust **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe6f       | 1.3.9999.6.5.6            |
+-| sphincssha256192ssimple                           | NIST Round 3 submission  |            3 |                    3 | 0xfe70       | 1.3.9999.6.5.7            |
+-| sphincssha256192ssimple **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe71       | 1.3.9999.6.5.8            |
+-| sphincssha256256frobust                           | NIST Round 3 submission  |            3 |                    5 | 0xfe72       | 1.3.9999.6.6.1            |
+-| sphincssha256256frobust **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe73       | 1.3.9999.6.6.2            |
+-| sphincssha256256fsimple                           | NIST Round 3 submission  |            3 |                    5 | 0xfe74       | 1.3.9999.6.6.3            |
+-| sphincssha256256fsimple **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe75       | 1.3.9999.6.6.4            |
+-| sphincssha256256srobust                           | NIST Round 3 submission  |            3 |                    5 | 0xfe76       | 1.3.9999.6.6.5            |
+-| sphincssha256256srobust **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe77       | 1.3.9999.6.6.6            |
+-| sphincssha256256ssimple                           | NIST Round 3 submission  |            3 |                    5 | 0xfe78       | 1.3.9999.6.6.7            |
+-| sphincssha256256ssimple **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe79       | 1.3.9999.6.6.8            |
+-| sphincsshake256128frobust                         | NIST Round 3 submission  |            3 |                    1 | 0xfe7a       | 1.3.9999.6.7.1            |
+-| sphincsshake256128frobust **hybrid with** p256    | NIST Round 3 submission  |            3 |                    1 | 0xfe7b       | 1.3.9999.6.7.2            |
+-| sphincsshake256128frobust **hybrid with** rsa3072 | NIST Round 3 submission  |            3 |                    1 | 0xfe7c       | 1.3.9999.6.7.3            |
+-| sphincsshake256128fsimple                         | NIST Round 3 submission  |            3 |                    1 | 0xfe7d       | 1.3.9999.6.7.4            |
+-| sphincsshake256128fsimple **hybrid with** p256    | NIST Round 3 submission  |            3 |                    1 | 0xfe7e       | 1.3.9999.6.7.5            |
+-| sphincsshake256128fsimple **hybrid with** rsa3072 | NIST Round 3 submission  |            3 |                    1 | 0xfe7f       | 1.3.9999.6.7.6            |
+-| sphincsshake256128srobust                         | NIST Round 3 submission  |            3 |                    1 | 0xfe80       | 1.3.9999.6.7.7            |
+-| sphincsshake256128srobust **hybrid with** p256    | NIST Round 3 submission  |            3 |                    1 | 0xfe81       | 1.3.9999.6.7.8            |
+-| sphincsshake256128srobust **hybrid with** rsa3072 | NIST Round 3 submission  |            3 |                    1 | 0xfe82       | 1.3.9999.6.7.9            |
+-| sphincsshake256128ssimple                         | NIST Round 3 submission  |            3 |                    1 | 0xfe83       | 1.3.9999.6.7.10           |
+-| sphincsshake256128ssimple **hybrid with** p256    | NIST Round 3 submission  |            3 |                    1 | 0xfe84       | 1.3.9999.6.7.11           |
+-| sphincsshake256128ssimple **hybrid with** rsa3072 | NIST Round 3 submission  |            3 |                    1 | 0xfe85       | 1.3.9999.6.7.12           |
+-| sphincsshake256192frobust                         | NIST Round 3 submission  |            3 |                    3 | 0xfe86       | 1.3.9999.6.8.1            |
+-| sphincsshake256192frobust **hybrid with** p384    | NIST Round 3 submission  |            3 |                    3 | 0xfe87       | 1.3.9999.6.8.2            |
+-| sphincsshake256192fsimple                         | NIST Round 3 submission  |            3 |                    3 | 0xfe88       | 1.3.9999.6.8.3            |
+-| sphincsshake256192fsimple **hybrid with** p384    | NIST Round 3 submission  |            3 |                    3 | 0xfe89       | 1.3.9999.6.8.4            |
+-| sphincsshake256192srobust                         | NIST Round 3 submission  |            3 |                    3 | 0xfe8a       | 1.3.9999.6.8.5            |
+-| sphincsshake256192srobust **hybrid with** p384    | NIST Round 3 submission  |            3 |                    3 | 0xfe8b       | 1.3.9999.6.8.6            |
+-| sphincsshake256192ssimple                         | NIST Round 3 submission  |            3 |                    3 | 0xfe8c       | 1.3.9999.6.8.7            |
+-| sphincsshake256192ssimple **hybrid with** p384    | NIST Round 3 submission  |            3 |                    3 | 0xfe8d       | 1.3.9999.6.8.8            |
+-| sphincsshake256256frobust                         | NIST Round 3 submission  |            3 |                    5 | 0xfe8e       | 1.3.9999.6.9.1            |
+-| sphincsshake256256frobust **hybrid with** p521    | NIST Round 3 submission  |            3 |                    5 | 0xfe8f       | 1.3.9999.6.9.2            |
+-| sphincsshake256256fsimple                         | NIST Round 3 submission  |            3 |                    5 | 0xfe90       | 1.3.9999.6.9.3            |
+-| sphincsshake256256fsimple **hybrid with** p521    | NIST Round 3 submission  |            3 |                    5 | 0xfe91       | 1.3.9999.6.9.4            |
+-| sphincsshake256256srobust                         | NIST Round 3 submission  |            3 |                    5 | 0xfe92       | 1.3.9999.6.9.5            |
+-| sphincsshake256256srobust **hybrid with** p521    | NIST Round 3 submission  |            3 |                    5 | 0xfe93       | 1.3.9999.6.9.6            |
+-| sphincsshake256256ssimple                         | NIST Round 3 submission  |            3 |                    5 | 0xfe94       | 1.3.9999.6.9.7            |
+-| sphincsshake256256ssimple **hybrid with** p521    | NIST Round 3 submission  |            3 |                    5 | 0xfe95       | 1.3.9999.6.9.8            |
+\ No newline at end of file
++| Algorithm                                         | Implementation Version   |   NIST round |   Claimed NIST Level | Code Point   | OID                      |
++|:--------------------------------------------------|:-------------------------|-------------:|---------------------:|:-------------|:-------------------------|
++| dilithium2                                        | 3.1                      |            3 |                    2 | 0xfea0       | 1.3.6.1.4.1.2.267.7.4.4  |
++| dilithium2 **hybrid with** p256                   | 3.1                      |            3 |                    2 | 0xfea1       | 1.3.9999.2.7.1           |
++| dilithium2 **hybrid with** rsa3072                | 3.1                      |            3 |                    2 | 0xfea2       | 1.3.9999.2.7.2           |
++| dilithium3                                        | 3.1                      |            3 |                    3 | 0xfea3       | 1.3.6.1.4.1.2.267.7.6.5  |
++| dilithium3 **hybrid with** p384                   | 3.1                      |            3 |                    3 | 0xfea4       | 1.3.9999.2.7.3           |
++| dilithium5                                        | 3.1                      |            3 |                    5 | 0xfea5       | 1.3.6.1.4.1.2.267.7.8.7  |
++| dilithium5 **hybrid with** p521                   | 3.1                      |            3 |                    5 | 0xfea6       | 1.3.9999.2.7.4           |
++| dilithium2_aes                                    | 3.1                      |            3 |                    2 | 0xfea7       | 1.3.6.1.4.1.2.267.11.4.4 |
++| dilithium2_aes **hybrid with** p256               | 3.1                      |            3 |                    2 | 0xfea8       | 1.3.9999.2.11.1          |
++| dilithium2_aes **hybrid with** rsa3072            | 3.1                      |            3 |                    2 | 0xfea9       | 1.3.9999.2.11.2          |
++| dilithium3_aes                                    | 3.1                      |            3 |                    3 | 0xfeaa       | 1.3.6.1.4.1.2.267.11.6.5 |
++| dilithium3_aes **hybrid with** p384               | 3.1                      |            3 |                    3 | 0xfeab       | 1.3.9999.2.11.3          |
++| dilithium5_aes                                    | 3.1                      |            3 |                    5 | 0xfeac       | 1.3.6.1.4.1.2.267.11.8.7 |
++| dilithium5_aes **hybrid with** p521               | 3.1                      |            3 |                    5 | 0xfead       | 1.3.9999.2.11.4          |
++| falcon512                                         | v1.2                     |            3 |                    1 | 0xfe0b       | 1.3.9999.3.1             |
++| falcon512 **hybrid with** p256                    | v1.2                     |            3 |                    1 | 0xfe0c       | 1.3.9999.3.2             |
++| falcon512 **hybrid with** rsa3072                 | v1.2                     |            3 |                    1 | 0xfe0d       | 1.3.9999.3.3             |
++| falcon1024                                        | v1.2                     |            3 |                    5 | 0xfe0e       | 1.3.9999.3.4             |
++| falcon1024 **hybrid with** p521                   | v1.2                     |            3 |                    5 | 0xfe0f       | 1.3.9999.3.5             |
++| sphincsharaka128frobust                           | NIST Round 3 submission  |            3 |                    1 | 0xfe42       | 1.3.9999.6.1.1           |
++| sphincsharaka128frobust **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe43       | 1.3.9999.6.1.2           |
++| sphincsharaka128frobust **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe44       | 1.3.9999.6.1.3           |
++| sphincsharaka128fsimple                           | NIST Round 3 submission  |            3 |                    1 | 0xfe45       | 1.3.9999.6.1.4           |
++| sphincsharaka128fsimple **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe46       | 1.3.9999.6.1.5           |
++| sphincsharaka128fsimple **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe47       | 1.3.9999.6.1.6           |
++| sphincsharaka128srobust                           | NIST Round 3 submission  |            3 |                    1 | 0xfe48       | 1.3.9999.6.1.7           |
++| sphincsharaka128srobust **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe49       | 1.3.9999.6.1.8           |
++| sphincsharaka128srobust **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe4a       | 1.3.9999.6.1.9           |
++| sphincsharaka128ssimple                           | NIST Round 3 submission  |            3 |                    1 | 0xfe4b       | 1.3.9999.6.1.10          |
++| sphincsharaka128ssimple **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe4c       | 1.3.9999.6.1.11          |
++| sphincsharaka128ssimple **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe4d       | 1.3.9999.6.1.12          |
++| sphincsharaka192frobust                           | NIST Round 3 submission  |            3 |                    3 | 0xfe4e       | 1.3.9999.6.2.1           |
++| sphincsharaka192frobust **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe4f       | 1.3.9999.6.2.2           |
++| sphincsharaka192fsimple                           | NIST Round 3 submission  |            3 |                    3 | 0xfe50       | 1.3.9999.6.2.3           |
++| sphincsharaka192fsimple **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe51       | 1.3.9999.6.2.4           |
++| sphincsharaka192srobust                           | NIST Round 3 submission  |            3 |                    3 | 0xfe52       | 1.3.9999.6.2.5           |
++| sphincsharaka192srobust **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe53       | 1.3.9999.6.2.6           |
++| sphincsharaka192ssimple                           | NIST Round 3 submission  |            3 |                    3 | 0xfe54       | 1.3.9999.6.2.7           |
++| sphincsharaka192ssimple **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe55       | 1.3.9999.6.2.8           |
++| sphincsharaka256frobust                           | NIST Round 3 submission  |            3 |                    5 | 0xfe56       | 1.3.9999.6.3.1           |
++| sphincsharaka256frobust **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe57       | 1.3.9999.6.3.2           |
++| sphincsharaka256fsimple                           | NIST Round 3 submission  |            3 |                    5 | 0xfe58       | 1.3.9999.6.3.3           |
++| sphincsharaka256fsimple **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe59       | 1.3.9999.6.3.4           |
++| sphincsharaka256srobust                           | NIST Round 3 submission  |            3 |                    5 | 0xfe5a       | 1.3.9999.6.3.5           |
++| sphincsharaka256srobust **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe5b       | 1.3.9999.6.3.6           |
++| sphincsharaka256ssimple                           | NIST Round 3 submission  |            3 |                    5 | 0xfe5c       | 1.3.9999.6.3.7           |
++| sphincsharaka256ssimple **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe5d       | 1.3.9999.6.3.8           |
++| sphincssha256128frobust                           | NIST Round 3 submission  |            3 |                    1 | 0xfe5e       | 1.3.9999.6.4.1           |
++| sphincssha256128frobust **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe5f       | 1.3.9999.6.4.2           |
++| sphincssha256128frobust **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe60       | 1.3.9999.6.4.3           |
++| sphincssha256128fsimple                           | NIST Round 3 submission  |            3 |                    1 | 0xfe61       | 1.3.9999.6.4.4           |
++| sphincssha256128fsimple **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe62       | 1.3.9999.6.4.5           |
++| sphincssha256128fsimple **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe63       | 1.3.9999.6.4.6           |
++| sphincssha256128srobust                           | NIST Round 3 submission  |            3 |                    1 | 0xfe64       | 1.3.9999.6.4.7           |
++| sphincssha256128srobust **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe65       | 1.3.9999.6.4.8           |
++| sphincssha256128srobust **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe66       | 1.3.9999.6.4.9           |
++| sphincssha256128ssimple                           | NIST Round 3 submission  |            3 |                    1 | 0xfe67       | 1.3.9999.6.4.10          |
++| sphincssha256128ssimple **hybrid with** p256      | NIST Round 3 submission  |            3 |                    1 | 0xfe68       | 1.3.9999.6.4.11          |
++| sphincssha256128ssimple **hybrid with** rsa3072   | NIST Round 3 submission  |            3 |                    1 | 0xfe69       | 1.3.9999.6.4.12          |
++| sphincssha256192frobust                           | NIST Round 3 submission  |            3 |                    3 | 0xfe6a       | 1.3.9999.6.5.1           |
++| sphincssha256192frobust **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe6b       | 1.3.9999.6.5.2           |
++| sphincssha256192fsimple                           | NIST Round 3 submission  |            3 |                    3 | 0xfe6c       | 1.3.9999.6.5.3           |
++| sphincssha256192fsimple **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe6d       | 1.3.9999.6.5.4           |
++| sphincssha256192srobust                           | NIST Round 3 submission  |            3 |                    3 | 0xfe6e       | 1.3.9999.6.5.5           |
++| sphincssha256192srobust **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe6f       | 1.3.9999.6.5.6           |
++| sphincssha256192ssimple                           | NIST Round 3 submission  |            3 |                    3 | 0xfe70       | 1.3.9999.6.5.7           |
++| sphincssha256192ssimple **hybrid with** p384      | NIST Round 3 submission  |            3 |                    3 | 0xfe71       | 1.3.9999.6.5.8           |
++| sphincssha256256frobust                           | NIST Round 3 submission  |            3 |                    5 | 0xfe72       | 1.3.9999.6.6.1           |
++| sphincssha256256frobust **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe73       | 1.3.9999.6.6.2           |
++| sphincssha256256fsimple                           | NIST Round 3 submission  |            3 |                    5 | 0xfe74       | 1.3.9999.6.6.3           |
++| sphincssha256256fsimple **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe75       | 1.3.9999.6.6.4           |
++| sphincssha256256srobust                           | NIST Round 3 submission  |            3 |                    5 | 0xfe76       | 1.3.9999.6.6.5           |
++| sphincssha256256srobust **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe77       | 1.3.9999.6.6.6           |
++| sphincssha256256ssimple                           | NIST Round 3 submission  |            3 |                    5 | 0xfe78       | 1.3.9999.6.6.7           |
++| sphincssha256256ssimple **hybrid with** p521      | NIST Round 3 submission  |            3 |                    5 | 0xfe79       | 1.3.9999.6.6.8           |
++| sphincsshake256128frobust                         | NIST Round 3 submission  |            3 |                    1 | 0xfe7a       | 1.3.9999.6.7.1           |
++| sphincsshake256128frobust **hybrid with** p256    | NIST Round 3 submission  |            3 |                    1 | 0xfe7b       | 1.3.9999.6.7.2           |
++| sphincsshake256128frobust **hybrid with** rsa3072 | NIST Round 3 submission  |            3 |                    1 | 0xfe7c       | 1.3.9999.6.7.3           |
++| sphincsshake256128fsimple                         | NIST Round 3 submission  |            3 |                    1 | 0xfe7d       | 1.3.9999.6.7.4           |
++| sphincsshake256128fsimple **hybrid with** p256    | NIST Round 3 submission  |            3 |                    1 | 0xfe7e       | 1.3.9999.6.7.5           |
++| sphincsshake256128fsimple **hybrid with** rsa3072 | NIST Round 3 submission  |            3 |                    1 | 0xfe7f       | 1.3.9999.6.7.6           |
++| sphincsshake256128srobust                         | NIST Round 3 submission  |            3 |                    1 | 0xfe80       | 1.3.9999.6.7.7           |
++| sphincsshake256128srobust **hybrid with** p256    | NIST Round 3 submission  |            3 |                    1 | 0xfe81       | 1.3.9999.6.7.8           |
++| sphincsshake256128srobust **hybrid with** rsa3072 | NIST Round 3 submission  |            3 |                    1 | 0xfe82       | 1.3.9999.6.7.9           |
++| sphincsshake256128ssimple                         | NIST Round 3 submission  |            3 |                    1 | 0xfe83       | 1.3.9999.6.7.10          |
++| sphincsshake256128ssimple **hybrid with** p256    | NIST Round 3 submission  |            3 |                    1 | 0xfe84       | 1.3.9999.6.7.11          |
++| sphincsshake256128ssimple **hybrid with** rsa3072 | NIST Round 3 submission  |            3 |                    1 | 0xfe85       | 1.3.9999.6.7.12          |
++| sphincsshake256192frobust                         | NIST Round 3 submission  |            3 |                    3 | 0xfe86       | 1.3.9999.6.8.1           |
++| sphincsshake256192frobust **hybrid with** p384    | NIST Round 3 submission  |            3 |                    3 | 0xfe87       | 1.3.9999.6.8.2           |
++| sphincsshake256192fsimple                         | NIST Round 3 submission  |            3 |                    3 | 0xfe88       | 1.3.9999.6.8.3           |
++| sphincsshake256192fsimple **hybrid with** p384    | NIST Round 3 submission  |            3 |                    3 | 0xfe89       | 1.3.9999.6.8.4           |
++| sphincsshake256192srobust                         | NIST Round 3 submission  |            3 |                    3 | 0xfe8a       | 1.3.9999.6.8.5           |
++| sphincsshake256192srobust **hybrid with** p384    | NIST Round 3 submission  |            3 |                    3 | 0xfe8b       | 1.3.9999.6.8.6           |
++| sphincsshake256192ssimple                         | NIST Round 3 submission  |            3 |                    3 | 0xfe8c       | 1.3.9999.6.8.7           |
++| sphincsshake256192ssimple **hybrid with** p384    | NIST Round 3 submission  |            3 |                    3 | 0xfe8d       | 1.3.9999.6.8.8           |
++| sphincsshake256256frobust                         | NIST Round 3 submission  |            3 |                    5 | 0xfe8e       | 1.3.9999.6.9.1           |
++| sphincsshake256256frobust **hybrid with** p521    | NIST Round 3 submission  |            3 |                    5 | 0xfe8f       | 1.3.9999.6.9.2           |
++| sphincsshake256256fsimple                         | NIST Round 3 submission  |            3 |                    5 | 0xfe90       | 1.3.9999.6.9.3           |
++| sphincsshake256256fsimple **hybrid with** p521    | NIST Round 3 submission  |            3 |                    5 | 0xfe91       | 1.3.9999.6.9.4           |
++| sphincsshake256256srobust                         | NIST Round 3 submission  |            3 |                    5 | 0xfe92       | 1.3.9999.6.9.5           |
++| sphincsshake256256srobust **hybrid with** p521    | NIST Round 3 submission  |            3 |                    5 | 0xfe93       | 1.3.9999.6.9.6           |
++| sphincsshake256256ssimple                         | NIST Round 3 submission  |            3 |                    5 | 0xfe94       | 1.3.9999.6.9.7           |
++| sphincsshake256256ssimple **hybrid with** p521    | NIST Round 3 submission  |            3 |                    5 | 0xfe95       | 1.3.9999.6.9.8           |
+\ No newline at end of file
+diff --git a/oqs-test/common.py b/oqs-test/common.py
+index 73f9d31d09..f0aaa0dda2 100644
+--- a/oqs-test/common.py
++++ b/oqs-test/common.py
+@@ -7,18 +7,18 @@ import time
+ key_exchanges = [
+ ##### OQS_TEMPLATE_FRAGMENT_KEX_ALGS_START
+     # post-quantum key exchanges
+-    'frodo640aes','frodo640shake','frodo976aes','frodo976shake','frodo1344aes','frodo1344shake','kyber512','kyber768','kyber1024','ntru_hps2048509','ntru_hps2048677','ntru_hps4096821','ntru_hps40961229','ntru_hrss701','ntru_hrss1373','lightsaber','saber','firesaber','bikel1','bikel3','kyber90s512','kyber90s768','kyber90s1024','hqc128','hqc192','hqc256','ntrulpr653','ntrulpr761','ntrulpr857','ntrulpr1277','sntrup653','sntrup761','sntrup857','sntrup1277',
++    'frodo640aes','frodo640shake','frodo976aes','frodo976shake','frodo1344aes','frodo1344shake','kyber512','kyber768','kyber1024','ntru_hps2048509','ntru_hps2048677','ntru_hps4096821','ntru_hps40961229','ntru_hrss701','ntru_hrss1373','lightsaber','saber','firesaber','bikel1','bikel3','kyber90s512','kyber90s768','kyber90s1024','hqc128','hqc192','hqc256',
+     # post-quantum + classical key exchanges
+-    'p256_frodo640aes','p256_frodo640shake','p384_frodo976aes','p384_frodo976shake','p521_frodo1344aes','p521_frodo1344shake','p256_kyber512','p384_kyber768','p521_kyber1024','p256_ntru_hps2048509','p384_ntru_hps2048677','p521_ntru_hps4096821','p521_ntru_hps40961229','p384_ntru_hrss701','p521_ntru_hrss1373','p256_lightsaber','p384_saber','p521_firesaber','p256_bikel1','p384_bikel3','p256_kyber90s512','p384_kyber90s768','p521_kyber90s1024','p256_hqc128','p384_hqc192','p521_hqc256','p256_ntrulpr653','p256_ntrulpr761','p384_ntrulpr857','p521_ntrulpr1277','p256_sntrup653','p256_sntrup761','p384_sntrup857','p521_sntrup1277',
++    'p256_frodo640aes','p256_frodo640shake','p384_frodo976aes','p384_frodo976shake','p521_frodo1344aes','p521_frodo1344shake','p256_kyber512','p384_kyber768','p521_kyber1024','p256_ntru_hps2048509','p384_ntru_hps2048677','p521_ntru_hps4096821','p521_ntru_hps40961229','p384_ntru_hrss701','p521_ntru_hrss1373','p256_lightsaber','p384_saber','p521_firesaber','p256_bikel1','p384_bikel3','p256_kyber90s512','p384_kyber90s768','p521_kyber90s1024','p256_hqc128','p384_hqc192','p521_hqc256',
+ ##### OQS_TEMPLATE_FRAGMENT_KEX_ALGS_END
+ ]
+ signatures = [
+     'ecdsap256', 'rsa3072',
+ ##### OQS_TEMPLATE_FRAGMENT_SIG_ALGS_START
+     # post-quantum signatures
+-    'dilithium2','dilithium3','dilithium5','dilithium2_aes','dilithium3_aes','dilithium5_aes','falcon512','falcon1024','picnicl1full','picnic3l1','rainbowVclassic','sphincsharaka128frobust','sphincssha256128frobust','sphincsshake256128frobust',
++    'dilithium2','dilithium3','dilithium5','dilithium2_aes','dilithium3_aes','dilithium5_aes','falcon512','falcon1024','sphincsharaka128fsimple','sphincsharaka192fsimple','sphincsharaka256fsimple','sphincssha256128frobust','sphincsshake256128frobust',
+     # post-quantum + classical signatures
+-    'p256_dilithium2','rsa3072_dilithium2','p384_dilithium3','p521_dilithium5','p256_dilithium2_aes','rsa3072_dilithium2_aes','p384_dilithium3_aes','p521_dilithium5_aes','p256_falcon512','rsa3072_falcon512','p521_falcon1024','p256_picnicl1full','rsa3072_picnicl1full','p256_picnic3l1','rsa3072_picnic3l1','p521_rainbowVclassic','p256_sphincsharaka128frobust','rsa3072_sphincsharaka128frobust','p256_sphincssha256128frobust','rsa3072_sphincssha256128frobust','p256_sphincsshake256128frobust','rsa3072_sphincsshake256128frobust',
++    'p256_dilithium2','rsa3072_dilithium2','p384_dilithium3','p521_dilithium5','p256_dilithium2_aes','rsa3072_dilithium2_aes','p384_dilithium3_aes','p521_dilithium5_aes','p256_falcon512','rsa3072_falcon512','p521_falcon1024','p256_sphincsharaka128fsimple','rsa3072_sphincsharaka128fsimple','p384_sphincsharaka192fsimple','p521_sphincsharaka256fsimple','p256_sphincssha256128frobust','rsa3072_sphincssha256128frobust','p256_sphincsshake256128frobust','rsa3072_sphincsshake256128frobust',
+ ##### OQS_TEMPLATE_FRAGMENT_SIG_ALGS_END
+ ]
+ 
+diff --git a/qsc.h b/qsc.h
+index 3b3b5e5c7b..52ef4151b0 100644
+--- a/qsc.h
++++ b/qsc.h
+@@ -52,22 +52,6 @@
+     { 0x2F2D, "p384_hqc192" }, \
+     { 0x022E, "hqc256" }, \
+     { 0x2F2E, "p521_hqc256" }, \
+-    { 0x022F, "ntrulpr653" }, \
+-    { 0x2F2F, "p256_ntrulpr653" }, \
+-    { 0x0230, "ntrulpr761" }, \
+-    { 0x2F43, "p256_ntrulpr761" }, \
+-    { 0x0231, "ntrulpr857" }, \
+-    { 0x2F31, "p384_ntrulpr857" }, \
+-    { 0x0241, "ntrulpr1277" }, \
+-    { 0x2F41, "p521_ntrulpr1277" }, \
+-    { 0x0232, "sntrup653" }, \
+-    { 0x2F32, "p256_sntrup653" }, \
+-    { 0x0233, "sntrup761" }, \
+-    { 0x2F44, "p256_sntrup761" }, \
+-    { 0x0234, "sntrup857" }, \
+-    { 0x2F34, "p384_sntrup857" }, \
+-    { 0x0242, "sntrup1277" }, \
+-    { 0x2F42, "p521_sntrup1277" }, \
+   
+ 
+ ///// OQS_TEMPLATE_FRAGMENT_OQS_CURVE_ID_NAME_STR_END
+@@ -93,17 +77,13 @@
+ 	oid_add_from_string("rsa3072_falcon512", "1.3.9999.3.3"); \
+ 	oid_add_from_string("falcon1024", "1.3.9999.3.4"); \
+ 	oid_add_from_string("p521_falcon1024", "1.3.9999.3.5"); \
+-	oid_add_from_string("picnicl1full", "1.3.6.1.4.1.311.89.2.1.7"); \
+-	oid_add_from_string("p256_picnicl1full", "1.3.6.1.4.1.311.89.2.1.8"); \
+-	oid_add_from_string("rsa3072_picnicl1full", "1.3.6.1.4.1.311.89.2.1.9"); \
+-	oid_add_from_string("picnic3l1", "1.3.6.1.4.1.311.89.2.1.21"); \
+-	oid_add_from_string("p256_picnic3l1", "1.3.6.1.4.1.311.89.2.1.22"); \
+-	oid_add_from_string("rsa3072_picnic3l1", "1.3.6.1.4.1.311.89.2.1.23"); \
+-	oid_add_from_string("rainbowVclassic", "1.3.9999.5.3.1.1"); \
+-	oid_add_from_string("p521_rainbowVclassic", "1.3.9999.5.3.2.1"); \
+-	oid_add_from_string("sphincsharaka128frobust", "1.3.9999.6.1.1"); \
+-	oid_add_from_string("p256_sphincsharaka128frobust", "1.3.9999.6.1.2"); \
+-	oid_add_from_string("rsa3072_sphincsharaka128frobust", "1.3.9999.6.1.3"); \
++	oid_add_from_string("sphincsharaka128fsimple", "1.3.9999.6.1.4"); \
++	oid_add_from_string("p256_sphincsharaka128fsimple", "1.3.9999.6.1.5"); \
++	oid_add_from_string("rsa3072_sphincsharaka128fsimple", "1.3.9999.6.1.6"); \
++	oid_add_from_string("sphincsharaka192fsimple", "1.3.9999.6.2.3"); \
++	oid_add_from_string("p384_sphincsharaka192fsimple", "1.3.9999.6.2.4"); \
++	oid_add_from_string("sphincsharaka256fsimple", "1.3.9999.6.3.3"); \
++	oid_add_from_string("p521_sphincsharaka256fsimple", "1.3.9999.6.3.4"); \
+ 	oid_add_from_string("sphincssha256128frobust", "1.3.9999.6.4.1"); \
+ 	oid_add_from_string("p256_sphincssha256128frobust", "1.3.9999.6.4.2"); \
+ 	oid_add_from_string("rsa3072_sphincssha256128frobust", "1.3.9999.6.4.3"); \
+diff --git a/ssl/ssl_cert_table.h b/ssl/ssl_cert_table.h
+index 134827b226..5cb3fd73a2 100644
+--- a/ssl/ssl_cert_table.h
++++ b/ssl/ssl_cert_table.h
+@@ -42,17 +42,13 @@ static const SSL_CERT_LOOKUP ssl_cert_info [] = {
+     {EVP_PKEY_RSA3072_FALCON512, SSL_aRSA3072_FALCON512}, /* SSL_PKEY_RSA3072_FALCON512 */
+     {EVP_PKEY_FALCON1024, SSL_aFALCON1024}, /* SSL_PKEY_FALCON1024 */
+     {EVP_PKEY_P521_FALCON1024, SSL_aP521_FALCON1024}, /* SSL_PKEY_P521_FALCON1024 */
+-    {EVP_PKEY_PICNICL1FULL, SSL_aPICNICL1FULL}, /* SSL_PKEY_PICNICL1FULL */
+-    {EVP_PKEY_P256_PICNICL1FULL, SSL_aP256_PICNICL1FULL}, /* SSL_PKEY_P256_PICNICL1FULL */
+-    {EVP_PKEY_RSA3072_PICNICL1FULL, SSL_aRSA3072_PICNICL1FULL}, /* SSL_PKEY_RSA3072_PICNICL1FULL */
+-    {EVP_PKEY_PICNIC3L1, SSL_aPICNIC3L1}, /* SSL_PKEY_PICNIC3L1 */
+-    {EVP_PKEY_P256_PICNIC3L1, SSL_aP256_PICNIC3L1}, /* SSL_PKEY_P256_PICNIC3L1 */
+-    {EVP_PKEY_RSA3072_PICNIC3L1, SSL_aRSA3072_PICNIC3L1}, /* SSL_PKEY_RSA3072_PICNIC3L1 */
+-    {EVP_PKEY_RAINBOWVCLASSIC, SSL_aRAINBOWVCLASSIC}, /* SSL_PKEY_RAINBOWVCLASSIC */
+-    {EVP_PKEY_P521_RAINBOWVCLASSIC, SSL_aP521_RAINBOWVCLASSIC}, /* SSL_PKEY_P521_RAINBOWVCLASSIC */
+-    {EVP_PKEY_SPHINCSHARAKA128FROBUST, SSL_aSPHINCSHARAKA128FROBUST}, /* SSL_PKEY_SPHINCSHARAKA128FROBUST */
+-    {EVP_PKEY_P256_SPHINCSHARAKA128FROBUST, SSL_aP256_SPHINCSHARAKA128FROBUST}, /* SSL_PKEY_P256_SPHINCSHARAKA128FROBUST */
+-    {EVP_PKEY_RSA3072_SPHINCSHARAKA128FROBUST, SSL_aRSA3072_SPHINCSHARAKA128FROBUST}, /* SSL_PKEY_RSA3072_SPHINCSHARAKA128FROBUST */
++    {EVP_PKEY_SPHINCSHARAKA128FSIMPLE, SSL_aSPHINCSHARAKA128FSIMPLE}, /* SSL_PKEY_SPHINCSHARAKA128FSIMPLE */
++    {EVP_PKEY_P256_SPHINCSHARAKA128FSIMPLE, SSL_aP256_SPHINCSHARAKA128FSIMPLE}, /* SSL_PKEY_P256_SPHINCSHARAKA128FSIMPLE */
++    {EVP_PKEY_RSA3072_SPHINCSHARAKA128FSIMPLE, SSL_aRSA3072_SPHINCSHARAKA128FSIMPLE}, /* SSL_PKEY_RSA3072_SPHINCSHARAKA128FSIMPLE */
++    {EVP_PKEY_SPHINCSHARAKA192FSIMPLE, SSL_aSPHINCSHARAKA192FSIMPLE}, /* SSL_PKEY_SPHINCSHARAKA192FSIMPLE */
++    {EVP_PKEY_P384_SPHINCSHARAKA192FSIMPLE, SSL_aP384_SPHINCSHARAKA192FSIMPLE}, /* SSL_PKEY_P384_SPHINCSHARAKA192FSIMPLE */
++    {EVP_PKEY_SPHINCSHARAKA256FSIMPLE, SSL_aSPHINCSHARAKA256FSIMPLE}, /* SSL_PKEY_SPHINCSHARAKA256FSIMPLE */
++    {EVP_PKEY_P521_SPHINCSHARAKA256FSIMPLE, SSL_aP521_SPHINCSHARAKA256FSIMPLE}, /* SSL_PKEY_P521_SPHINCSHARAKA256FSIMPLE */
+     {EVP_PKEY_SPHINCSSHA256128FROBUST, SSL_aSPHINCSSHA256128FROBUST}, /* SSL_PKEY_SPHINCSSHA256128FROBUST */
+     {EVP_PKEY_P256_SPHINCSSHA256128FROBUST, SSL_aP256_SPHINCSSHA256128FROBUST}, /* SSL_PKEY_P256_SPHINCSSHA256128FROBUST */
+     {EVP_PKEY_RSA3072_SPHINCSSHA256128FROBUST, SSL_aRSA3072_SPHINCSSHA256128FROBUST}, /* SSL_PKEY_RSA3072_SPHINCSSHA256128FROBUST */
+diff --git a/ssl/ssl_local.h b/ssl/ssl_local.h
+index 545a2ada7c..249b348e84 100644
+--- a/ssl/ssl_local.h
++++ b/ssl/ssl_local.h
+@@ -241,40 +241,32 @@
+ #define SSL_aFALCON1024 0x02000000U
+ /* ECDSA p521 - Falcon-1024 auth */
+ #define SSL_aP521_FALCON1024 0x04000000U
+-/* Picnic L1 full auth */
+-#define SSL_aPICNICL1FULL 0x08000000U
+-/* ECDSA p256 - Picnic L1 full auth */
+-#define SSL_aP256_PICNICL1FULL 0x10000000U
+-/* RSA3072 - Picnic L1 full auth */
+-#define SSL_aRSA3072_PICNICL1FULL 0x20000000U
+-/* Picnic3 L1 auth */
+-#define SSL_aPICNIC3L1 0x40000000U
+-/* ECDSA p256 - Picnic3 L1 auth */
+-#define SSL_aP256_PICNIC3L1 0x80000000U
+-/* RSA3072 - Picnic3 L1 auth */
+-#define SSL_aRSA3072_PICNIC3L1 0x100000000U
+-/* Rainbow-V-Classic auth */
+-#define SSL_aRAINBOWVCLASSIC 0x200000000U
+-/* ECDSA p521 - Rainbow-V-Classic auth */
+-#define SSL_aP521_RAINBOWVCLASSIC 0x400000000U
+-/* SPHINCS+-Haraka-128f-robust auth */
+-#define SSL_aSPHINCSHARAKA128FROBUST 0x800000000U
+-/* ECDSA p256 - SPHINCS+-Haraka-128f-robust auth */
+-#define SSL_aP256_SPHINCSHARAKA128FROBUST 0x1000000000U
+-/* RSA3072 - SPHINCS+-Haraka-128f-robust auth */
+-#define SSL_aRSA3072_SPHINCSHARAKA128FROBUST 0x2000000000U
++/* SPHINCS+-Haraka-128f-simple auth */
++#define SSL_aSPHINCSHARAKA128FSIMPLE 0x08000000U
++/* ECDSA p256 - SPHINCS+-Haraka-128f-simple auth */
++#define SSL_aP256_SPHINCSHARAKA128FSIMPLE 0x10000000U
++/* RSA3072 - SPHINCS+-Haraka-128f-simple auth */
++#define SSL_aRSA3072_SPHINCSHARAKA128FSIMPLE 0x20000000U
++/* SPHINCS+-Haraka-192f-simple auth */
++#define SSL_aSPHINCSHARAKA192FSIMPLE 0x40000000U
++/* ECDSA p384 - SPHINCS+-Haraka-192f-simple auth */
++#define SSL_aP384_SPHINCSHARAKA192FSIMPLE 0x80000000U
++/* SPHINCS+-Haraka-256f-simple auth */
++#define SSL_aSPHINCSHARAKA256FSIMPLE 0x100000000U
++/* ECDSA p521 - SPHINCS+-Haraka-256f-simple auth */
++#define SSL_aP521_SPHINCSHARAKA256FSIMPLE 0x200000000U
+ /* SPHINCS+-SHA256-128f-robust auth */
+-#define SSL_aSPHINCSSHA256128FROBUST 0x4000000000U
++#define SSL_aSPHINCSSHA256128FROBUST 0x400000000U
+ /* ECDSA p256 - SPHINCS+-SHA256-128f-robust auth */
+-#define SSL_aP256_SPHINCSSHA256128FROBUST 0x8000000000U
++#define SSL_aP256_SPHINCSSHA256128FROBUST 0x800000000U
+ /* RSA3072 - SPHINCS+-SHA256-128f-robust auth */
+-#define SSL_aRSA3072_SPHINCSSHA256128FROBUST 0x10000000000U
++#define SSL_aRSA3072_SPHINCSSHA256128FROBUST 0x1000000000U
+ /* SPHINCS+-SHAKE256-128f-robust auth */
+-#define SSL_aSPHINCSSHAKE256128FROBUST 0x20000000000U
++#define SSL_aSPHINCSSHAKE256128FROBUST 0x2000000000U
+ /* ECDSA p256 - SPHINCS+-SHAKE256-128f-robust auth */
+-#define SSL_aP256_SPHINCSSHAKE256128FROBUST 0x40000000000U
++#define SSL_aP256_SPHINCSSHAKE256128FROBUST 0x4000000000U
+ /* RSA3072 - SPHINCS+-SHAKE256-128f-robust auth */
+-#define SSL_aRSA3072_SPHINCSSHAKE256128FROBUST 0x80000000000U
++#define SSL_aRSA3072_SPHINCSSHAKE256128FROBUST 0x8000000000U
+ ///// OQS_TEMPLATE_FRAGMENT_DEFINE_SIG_MASKS_END
+ /* Any appropriate signature auth (for TLS 1.3 ciphersuites) */
+ # define SSL_aANY                0x00000000U
+@@ -478,25 +470,21 @@
+ #define SSL_PKEY_RSA3072_FALCON512 25
+ #define SSL_PKEY_FALCON1024 26
+ #define SSL_PKEY_P521_FALCON1024 27
+-#define SSL_PKEY_PICNICL1FULL 28
+-#define SSL_PKEY_P256_PICNICL1FULL 29
+-#define SSL_PKEY_RSA3072_PICNICL1FULL 30
+-#define SSL_PKEY_PICNIC3L1 31
+-#define SSL_PKEY_P256_PICNIC3L1 32
+-#define SSL_PKEY_RSA3072_PICNIC3L1 33
+-#define SSL_PKEY_RAINBOWVCLASSIC 34
+-#define SSL_PKEY_P521_RAINBOWVCLASSIC 35
+-#define SSL_PKEY_SPHINCSHARAKA128FROBUST 36
+-#define SSL_PKEY_P256_SPHINCSHARAKA128FROBUST 37
+-#define SSL_PKEY_RSA3072_SPHINCSHARAKA128FROBUST 38
+-#define SSL_PKEY_SPHINCSSHA256128FROBUST 39
+-#define SSL_PKEY_P256_SPHINCSSHA256128FROBUST 40
+-#define SSL_PKEY_RSA3072_SPHINCSSHA256128FROBUST 41
+-#define SSL_PKEY_SPHINCSSHAKE256128FROBUST 42
+-#define SSL_PKEY_P256_SPHINCSSHAKE256128FROBUST 43
+-#define SSL_PKEY_RSA3072_SPHINCSSHAKE256128FROBUST 44
+-
+-#define SSL_PKEY_NUM 45
++#define SSL_PKEY_SPHINCSHARAKA128FSIMPLE 28
++#define SSL_PKEY_P256_SPHINCSHARAKA128FSIMPLE 29
++#define SSL_PKEY_RSA3072_SPHINCSHARAKA128FSIMPLE 30
++#define SSL_PKEY_SPHINCSHARAKA192FSIMPLE 31
++#define SSL_PKEY_P384_SPHINCSHARAKA192FSIMPLE 32
++#define SSL_PKEY_SPHINCSHARAKA256FSIMPLE 33
++#define SSL_PKEY_P521_SPHINCSHARAKA256FSIMPLE 34
++#define SSL_PKEY_SPHINCSSHA256128FROBUST 35
++#define SSL_PKEY_P256_SPHINCSSHA256128FROBUST 36
++#define SSL_PKEY_RSA3072_SPHINCSSHA256128FROBUST 37
++#define SSL_PKEY_SPHINCSSHAKE256128FROBUST 38
++#define SSL_PKEY_P256_SPHINCSSHAKE256128FROBUST 39
++#define SSL_PKEY_RSA3072_SPHINCSSHAKE256128FROBUST 40
++
++#define SSL_PKEY_NUM 41
+ ///// OQS_TEMPLATE_FRAGMENT_DEFINE_SSL_PKEYS_END
+ 
+ /*-
+@@ -542,16 +530,8 @@
+   (nid == NID_hqc128 ? 0x022C : \
+   (nid == NID_hqc192 ? 0x022D : \
+   (nid == NID_hqc256 ? 0x022E : \
+-  (nid == NID_ntrulpr653 ? 0x022F : \
+-  (nid == NID_ntrulpr761 ? 0x0230 : \
+-  (nid == NID_ntrulpr857 ? 0x0231 : \
+-  (nid == NID_ntrulpr1277 ? 0x0241 : \
+-  (nid == NID_sntrup653 ? 0x0232 : \
+-  (nid == NID_sntrup761 ? 0x0233 : \
+-  (nid == NID_sntrup857 ? 0x0234 : \
+-  (nid == NID_sntrup1277 ? 0x0242 : \
+   0 \
+-  ))))))))))))))))))))))))))))))))))
++  ))))))))))))))))))))))))))
+ ///// OQS_TEMPLATE_FRAGMENT_OQS_KEM_CURVEID_END
+ 
+ ///// OQS_TEMPLATE_FRAGMENT_OQS_KEM_HYBRID_CURVEID_START
+@@ -582,16 +562,8 @@
+     (nid == NID_p256_hqc128 ? 0x2F2C : \
+     (nid == NID_p384_hqc192 ? 0x2F2D : \
+     (nid == NID_p521_hqc256 ? 0x2F2E : \
+-    (nid == NID_p256_ntrulpr653 ? 0x2F2F : \
+-    (nid == NID_p256_ntrulpr761 ? 0x2F43 : \
+-    (nid == NID_p384_ntrulpr857 ? 0x2F31 : \
+-    (nid == NID_p521_ntrulpr1277 ? 0x2F41 : \
+-    (nid == NID_p256_sntrup653 ? 0x2F32 : \
+-    (nid == NID_p256_sntrup761 ? 0x2F44 : \
+-    (nid == NID_p384_sntrup857 ? 0x2F34 : \
+-    (nid == NID_p521_sntrup1277 ? 0x2F42 : \
+   0 \
+-  ))))))))))))))))))))))))))))))))))
++  ))))))))))))))))))))))))))
+ ///// OQS_TEMPLATE_FRAGMENT_OQS_KEM_HYBRID_CURVEID_END
+ 
+   /* Returns the non-hybrid OQS KEM NID for a PQ or hybrid curve ID */
+@@ -623,16 +595,8 @@
+   (curveID == 0x022C || curveID == 0x2F2C ? NID_hqc128 : \
+   (curveID == 0x022D || curveID == 0x2F2D ? NID_hqc192 : \
+   (curveID == 0x022E || curveID == 0x2F2E ? NID_hqc256 : \
+-  (curveID == 0x022F || curveID == 0x2F2F ? NID_ntrulpr653 : \
+-  (curveID == 0x0230 || curveID == 0x2F43 ? NID_ntrulpr761 : \
+-  (curveID == 0x0231 || curveID == 0x2F31 ? NID_ntrulpr857 : \
+-  (curveID == 0x0241 || curveID == 0x2F41 ? NID_ntrulpr1277 : \
+-  (curveID == 0x0232 || curveID == 0x2F32 ? NID_sntrup653 : \
+-  (curveID == 0x0233 || curveID == 0x2F44 ? NID_sntrup761 : \
+-  (curveID == 0x0234 || curveID == 0x2F34 ? NID_sntrup857 : \
+-  (curveID == 0x0242 || curveID == 0x2F42 ? NID_sntrup1277 : \
+   0 \
+-  ))))))))))))))))))))))))))))))))))
++  ))))))))))))))))))))))))))
+ ///// OQS_TEMPLATE_FRAGMENT_OQS_KEM_NID_END
+ 
+   /* Returns the hybrid OQS KEM NID for a hybrid curve ID */
+@@ -664,16 +628,8 @@
+     (curveID == 0x2F2C ? NID_p256_hqc128 : \
+     (curveID == 0x2F2D ? NID_p384_hqc192 : \
+     (curveID == 0x2F2E ? NID_p521_hqc256 : \
+-    (curveID == 0x2F2F ? NID_p256_ntrulpr653 : \
+-    (curveID == 0x2F43 ? NID_p256_ntrulpr761 : \
+-    (curveID == 0x2F31 ? NID_p384_ntrulpr857 : \
+-    (curveID == 0x2F41 ? NID_p521_ntrulpr1277 : \
+-    (curveID == 0x2F32 ? NID_p256_sntrup653 : \
+-    (curveID == 0x2F44 ? NID_p256_sntrup761 : \
+-    (curveID == 0x2F34 ? NID_p384_sntrup857 : \
+-    (curveID == 0x2F42 ? NID_p521_sntrup1277 : \
+   0 \
+-  ))))))))))))))))))))))))))))))))))
++  ))))))))))))))))))))))))))
+ ///// OQS_TEMPLATE_FRAGMENT_OQS_HYBRID_KEM_NID_END
+ 
+ /* Returns true if the curve ID is for an OQS KEM */
+@@ -713,16 +669,8 @@
+   (nid == NID_hqc128 ? OQS_KEM_alg_hqc_128 : \
+   (nid == NID_hqc192 ? OQS_KEM_alg_hqc_192 : \
+   (nid == NID_hqc256 ? OQS_KEM_alg_hqc_256 : \
+-  (nid == NID_ntrulpr653 ? OQS_KEM_alg_ntruprime_ntrulpr653 : \
+-  (nid == NID_ntrulpr761 ? OQS_KEM_alg_ntruprime_ntrulpr761 : \
+-  (nid == NID_ntrulpr857 ? OQS_KEM_alg_ntruprime_ntrulpr857 : \
+-  (nid == NID_ntrulpr1277 ? OQS_KEM_alg_ntruprime_ntrulpr1277 : \
+-  (nid == NID_sntrup653 ? OQS_KEM_alg_ntruprime_sntrup653 : \
+-  (nid == NID_sntrup761 ? OQS_KEM_alg_ntruprime_sntrup761 : \
+-  (nid == NID_sntrup857 ? OQS_KEM_alg_ntruprime_sntrup857 : \
+-  (nid == NID_sntrup1277 ? OQS_KEM_alg_ntruprime_sntrup1277 : \
+   0 \
+-  ))))))))))))))))))))))))))))))))))
++  ))))))))))))))))))))))))))
+ ///// OQS_TEMPLATE_FRAGMENT_OQS_ALG_NAME_END
+ 
+ /* Returns the classic curve ID for a given hybrid curve */
+@@ -755,16 +703,8 @@
+   (cid == 0x2F2C ?23: \
+   (cid == 0x2F2D ?24: \
+   (cid == 0x2F2E ?25: \
+-  (cid == 0x2F2F ?23: \
+-  (cid == 0x2F43 ?23: \
+-  (cid == 0x2F31 ?24: \
+-  (cid == 0x2F41 ?25: \
+-  (cid == 0x2F32 ?23: \
+-  (cid == 0x2F44 ?23: \
+-  (cid == 0x2F34 ?24: \
+-  (cid == 0x2F42 ?25: \
+   23 \
+-  )))))))))))))))))))))))))))))))))))
++  )))))))))))))))))))))))))))
+ ///// OQS_TEMPLATE_FRAGMENT_OQS_MAP_HYBRID_END
+ 
+ /* Returns the classical nid for an hybrid alg */
+@@ -2448,17 +2388,13 @@ typedef enum downgrade_en {
+ #define TLSEXT_SIGALG_rsa3072_falcon512 0xfe0d
+ #define TLSEXT_SIGALG_falcon1024 0xfe0e
+ #define TLSEXT_SIGALG_p521_falcon1024 0xfe0f
+-#define TLSEXT_SIGALG_picnicl1full 0xfe96
+-#define TLSEXT_SIGALG_p256_picnicl1full 0xfe97
+-#define TLSEXT_SIGALG_rsa3072_picnicl1full 0xfe98
+-#define TLSEXT_SIGALG_picnic3l1 0xfe1b
+-#define TLSEXT_SIGALG_p256_picnic3l1 0xfe1c
+-#define TLSEXT_SIGALG_rsa3072_picnic3l1 0xfe1d
+-#define TLSEXT_SIGALG_rainbowVclassic 0xfe3c
+-#define TLSEXT_SIGALG_p521_rainbowVclassic 0xfe3d
+-#define TLSEXT_SIGALG_sphincsharaka128frobust 0xfe42
+-#define TLSEXT_SIGALG_p256_sphincsharaka128frobust 0xfe43
+-#define TLSEXT_SIGALG_rsa3072_sphincsharaka128frobust 0xfe44
++#define TLSEXT_SIGALG_sphincsharaka128fsimple 0xfe45
++#define TLSEXT_SIGALG_p256_sphincsharaka128fsimple 0xfe46
++#define TLSEXT_SIGALG_rsa3072_sphincsharaka128fsimple 0xfe47
++#define TLSEXT_SIGALG_sphincsharaka192fsimple 0xfe50
++#define TLSEXT_SIGALG_p384_sphincsharaka192fsimple 0xfe51
++#define TLSEXT_SIGALG_sphincsharaka256fsimple 0xfe58
++#define TLSEXT_SIGALG_p521_sphincsharaka256fsimple 0xfe59
+ #define TLSEXT_SIGALG_sphincssha256128frobust 0xfe5e
+ #define TLSEXT_SIGALG_p256_sphincssha256128frobust 0xfe5f
+ #define TLSEXT_SIGALG_rsa3072_sphincssha256128frobust 0xfe60
+diff --git a/ssl/statem/statem_srvr.c b/ssl/statem/statem_srvr.c
+index 7f9b377942..38d6112630 100644
+--- a/ssl/statem/statem_srvr.c
++++ b/ssl/statem/statem_srvr.c
+@@ -841,6 +841,11 @@ WORK_STATE ossl_statem_server_post_work(SSL *s, WORK_STATE wst)
+         break;
+ 
+     case TLS_ST_SW_SRVR_HELLO:
++//#ifdef NOKAI_EARLY_PSH
++        if (statem_flush(s) != 1)
++            return WORK_MORE_A;
++//#endif
++
+         if (SSL_IS_TLS13(s) && s->hello_retry_request == SSL_HRR_PENDING) {
+             if ((s->options & SSL_OP_ENABLE_MIDDLEBOX_COMPAT) == 0
+                     && statem_flush(s) != 1)
+@@ -936,6 +941,9 @@ WORK_STATE ossl_statem_server_post_work(SSL *s, WORK_STATE wst)
+             dtls1_reset_seq_numbers(s, SSL3_CC_WRITE);
+         break;
+ 
++// #ifdef NOKAI_EARLY_PSH
++    case TLS_ST_SW_CERT:
++// #endif
+     case TLS_ST_SW_SRVR_DONE:
+         if (statem_flush(s) != 1)
+             return WORK_MORE_A;
+diff --git a/ssl/t1_lib.c b/ssl/t1_lib.c
+index 36c2e9ad5e..37adc37493 100644
+--- a/ssl/t1_lib.c
++++ b/ssl/t1_lib.c
+@@ -213,14 +213,6 @@ static const TLS_GROUP_INFO oqs_nid_list[] = {
+     {NID_hqc128, 128, TLS_CURVE_CUSTOM}, /* hqc128 (0x022C) */
+     {NID_hqc192, 192, TLS_CURVE_CUSTOM}, /* hqc192 (0x022D) */
+     {NID_hqc256, 256, TLS_CURVE_CUSTOM}, /* hqc256 (0x022E) */
+-    {NID_ntrulpr653, 128, TLS_CURVE_CUSTOM}, /* ntrulpr653 (0x022F) */
+-    {NID_ntrulpr761, 128, TLS_CURVE_CUSTOM}, /* ntrulpr761 (0x0230) */
+-    {NID_ntrulpr857, 192, TLS_CURVE_CUSTOM}, /* ntrulpr857 (0x0231) */
+-    {NID_ntrulpr1277, 256, TLS_CURVE_CUSTOM}, /* ntrulpr1277 (0x0241) */
+-    {NID_sntrup653, 128, TLS_CURVE_CUSTOM}, /* sntrup653 (0x0232) */
+-    {NID_sntrup761, 128, TLS_CURVE_CUSTOM}, /* sntrup761 (0x0233) */
+-    {NID_sntrup857, 192, TLS_CURVE_CUSTOM}, /* sntrup857 (0x0234) */
+-    {NID_sntrup1277, 256, TLS_CURVE_CUSTOM}, /* sntrup1277 (0x0242) */
+ ///// OQS_TEMPLATE_FRAGMENT_OQS_NID_LIST_END
+ };
+     /* Hybrid OQS groups. Security level is classical. */
+@@ -252,14 +244,6 @@ static const TLS_GROUP_INFO oqs_hybrid_nid_list[] = {
+  {NID_p256_hqc128, 128, TLS_CURVE_CUSTOM}, /* p256/384/521 + hqc128 hybrid (0x022C) */
+  {NID_p384_hqc192, 192, TLS_CURVE_CUSTOM}, /* p256/384/521 + hqc192 hybrid (0x022D) */
+  {NID_p521_hqc256, 256, TLS_CURVE_CUSTOM}, /* p256/384/521 + hqc256 hybrid (0x022E) */
+- {NID_p256_ntrulpr653, 128, TLS_CURVE_CUSTOM}, /* p256/384/521 + ntrulpr653 hybrid (0x022F) */
+- {NID_p256_ntrulpr761, 128, TLS_CURVE_CUSTOM}, /* p256/384/521 + ntrulpr761 hybrid (0x0230) */
+- {NID_p384_ntrulpr857, 192, TLS_CURVE_CUSTOM}, /* p256/384/521 + ntrulpr857 hybrid (0x0231) */
+- {NID_p521_ntrulpr1277, 256, TLS_CURVE_CUSTOM}, /* p256/384/521 + ntrulpr1277 hybrid (0x0241) */
+- {NID_p256_sntrup653, 128, TLS_CURVE_CUSTOM}, /* p256/384/521 + sntrup653 hybrid (0x0232) */
+- {NID_p256_sntrup761, 128, TLS_CURVE_CUSTOM}, /* p256/384/521 + sntrup761 hybrid (0x0233) */
+- {NID_p384_sntrup857, 192, TLS_CURVE_CUSTOM}, /* p256/384/521 + sntrup857 hybrid (0x0234) */
+- {NID_p521_sntrup1277, 256, TLS_CURVE_CUSTOM}, /* p256/384/521 + sntrup1277 hybrid (0x0242) */
+ ///// OQS_TEMPLATE_FRAGMENT_OQS_NID_LIST_HYBRID_END
+ };
+ 
+@@ -285,10 +269,6 @@ static const uint16_t eccurves_default[] = {
+     0x2F38, /* OQS bikel1 hybrid */
+     0x2F3E, /* OQS kyber90s512 hybrid */
+     0x2F2C, /* OQS hqc128 hybrid */
+-    0x2F2F, /* OQS ntrulpr653 hybrid */
+-    0x2F43, /* OQS ntrulpr761 hybrid */
+-    0x2F32, /* OQS sntrup653 hybrid */
+-    0x2F44, /* OQS sntrup761 hybrid */
+ ///// OQS_TEMPLATE_FRAGMENT_ECCURVES_DEFAULT_HYBRID_END
+ };
+ 
+@@ -359,22 +339,6 @@ static const uint16_t oqs_all_tls13_server_groups[] = {
+     0x2F2D, /* OQS hqc192 hybrid */
+     0x022E, /* hqc256 */
+     0x2F2E, /* OQS hqc256 hybrid */
+-    0x022F, /* ntrulpr653 */
+-    0x2F2F, /* OQS ntrulpr653 hybrid */
+-    0x0230, /* ntrulpr761 */
+-    0x2F43, /* OQS ntrulpr761 hybrid */
+-    0x0231, /* ntrulpr857 */
+-    0x2F31, /* OQS ntrulpr857 hybrid */
+-    0x0241, /* ntrulpr1277 */
+-    0x2F41, /* OQS ntrulpr1277 hybrid */
+-    0x0232, /* sntrup653 */
+-    0x2F32, /* OQS sntrup653 hybrid */
+-    0x0233, /* sntrup761 */
+-    0x2F44, /* OQS sntrup761 hybrid */
+-    0x0234, /* sntrup857 */
+-    0x2F34, /* OQS sntrup857 hybrid */
+-    0x0242, /* sntrup1277 */
+-    0x2F42, /* OQS sntrup1277 hybrid */
+ ///// OQS_TEMPLATE_FRAGMENT_ALL_OQS_CURVEIDS_END
+ };
+ 
+@@ -941,17 +905,13 @@ static const uint16_t tls12_sigalgs[] = {
+     TLSEXT_SIGALG_rsa3072_falcon512,
+     TLSEXT_SIGALG_falcon1024,
+     TLSEXT_SIGALG_p521_falcon1024,
+-    TLSEXT_SIGALG_picnicl1full,
+-    TLSEXT_SIGALG_p256_picnicl1full,
+-    TLSEXT_SIGALG_rsa3072_picnicl1full,
+-    TLSEXT_SIGALG_picnic3l1,
+-    TLSEXT_SIGALG_p256_picnic3l1,
+-    TLSEXT_SIGALG_rsa3072_picnic3l1,
+-    TLSEXT_SIGALG_rainbowVclassic,
+-    TLSEXT_SIGALG_p521_rainbowVclassic,
+-    TLSEXT_SIGALG_sphincsharaka128frobust,
+-    TLSEXT_SIGALG_p256_sphincsharaka128frobust,
+-    TLSEXT_SIGALG_rsa3072_sphincsharaka128frobust,
++    TLSEXT_SIGALG_sphincsharaka128fsimple,
++    TLSEXT_SIGALG_p256_sphincsharaka128fsimple,
++    TLSEXT_SIGALG_rsa3072_sphincsharaka128fsimple,
++    TLSEXT_SIGALG_sphincsharaka192fsimple,
++    TLSEXT_SIGALG_p384_sphincsharaka192fsimple,
++    TLSEXT_SIGALG_sphincsharaka256fsimple,
++    TLSEXT_SIGALG_p521_sphincsharaka256fsimple,
+     TLSEXT_SIGALG_sphincssha256128frobust,
+     TLSEXT_SIGALG_p256_sphincssha256128frobust,
+     TLSEXT_SIGALG_rsa3072_sphincssha256128frobust,
+@@ -1145,38 +1105,26 @@ static const SIGALG_LOOKUP sigalg_lookup_tbl[] = {
+     {"p521_falcon1024", TLSEXT_SIGALG_p521_falcon1024,
+      NID_undef, -1, EVP_PKEY_P521_FALCON1024, SSL_PKEY_P521_FALCON1024,
+      NID_undef, NID_undef},
+-    {"picnicl1full", TLSEXT_SIGALG_picnicl1full,
+-     NID_undef, -1, EVP_PKEY_PICNICL1FULL, SSL_PKEY_PICNICL1FULL,
++    {"sphincsharaka128fsimple", TLSEXT_SIGALG_sphincsharaka128fsimple,
++     NID_undef, -1, EVP_PKEY_SPHINCSHARAKA128FSIMPLE, SSL_PKEY_SPHINCSHARAKA128FSIMPLE,
+      NID_undef, NID_undef},
+-    {"p256_picnicl1full", TLSEXT_SIGALG_p256_picnicl1full,
+-     NID_undef, -1, EVP_PKEY_P256_PICNICL1FULL, SSL_PKEY_P256_PICNICL1FULL,
++    {"p256_sphincsharaka128fsimple", TLSEXT_SIGALG_p256_sphincsharaka128fsimple,
++     NID_undef, -1, EVP_PKEY_P256_SPHINCSHARAKA128FSIMPLE, SSL_PKEY_P256_SPHINCSHARAKA128FSIMPLE,
+      NID_undef, NID_undef},
+-    {"rsa3072_picnicl1full", TLSEXT_SIGALG_rsa3072_picnicl1full,
+-     NID_undef, -1, EVP_PKEY_RSA3072_PICNICL1FULL, SSL_PKEY_RSA3072_PICNICL1FULL,
++    {"rsa3072_sphincsharaka128fsimple", TLSEXT_SIGALG_rsa3072_sphincsharaka128fsimple,
++     NID_undef, -1, EVP_PKEY_RSA3072_SPHINCSHARAKA128FSIMPLE, SSL_PKEY_RSA3072_SPHINCSHARAKA128FSIMPLE,
+      NID_undef, NID_undef},
+-    {"picnic3l1", TLSEXT_SIGALG_picnic3l1,
+-     NID_undef, -1, EVP_PKEY_PICNIC3L1, SSL_PKEY_PICNIC3L1,
++    {"sphincsharaka192fsimple", TLSEXT_SIGALG_sphincsharaka192fsimple,
++     NID_undef, -1, EVP_PKEY_SPHINCSHARAKA192FSIMPLE, SSL_PKEY_SPHINCSHARAKA192FSIMPLE,
+      NID_undef, NID_undef},
+-    {"p256_picnic3l1", TLSEXT_SIGALG_p256_picnic3l1,
+-     NID_undef, -1, EVP_PKEY_P256_PICNIC3L1, SSL_PKEY_P256_PICNIC3L1,
++    {"p384_sphincsharaka192fsimple", TLSEXT_SIGALG_p384_sphincsharaka192fsimple,
++     NID_undef, -1, EVP_PKEY_P384_SPHINCSHARAKA192FSIMPLE, SSL_PKEY_P384_SPHINCSHARAKA192FSIMPLE,
+      NID_undef, NID_undef},
+-    {"rsa3072_picnic3l1", TLSEXT_SIGALG_rsa3072_picnic3l1,
+-     NID_undef, -1, EVP_PKEY_RSA3072_PICNIC3L1, SSL_PKEY_RSA3072_PICNIC3L1,
++    {"sphincsharaka256fsimple", TLSEXT_SIGALG_sphincsharaka256fsimple,
++     NID_undef, -1, EVP_PKEY_SPHINCSHARAKA256FSIMPLE, SSL_PKEY_SPHINCSHARAKA256FSIMPLE,
+      NID_undef, NID_undef},
+-    {"rainbowVclassic", TLSEXT_SIGALG_rainbowVclassic,
+-     NID_undef, -1, EVP_PKEY_RAINBOWVCLASSIC, SSL_PKEY_RAINBOWVCLASSIC,
+-     NID_undef, NID_undef},
+-    {"p521_rainbowVclassic", TLSEXT_SIGALG_p521_rainbowVclassic,
+-     NID_undef, -1, EVP_PKEY_P521_RAINBOWVCLASSIC, SSL_PKEY_P521_RAINBOWVCLASSIC,
+-     NID_undef, NID_undef},
+-    {"sphincsharaka128frobust", TLSEXT_SIGALG_sphincsharaka128frobust,
+-     NID_undef, -1, EVP_PKEY_SPHINCSHARAKA128FROBUST, SSL_PKEY_SPHINCSHARAKA128FROBUST,
+-     NID_undef, NID_undef},
+-    {"p256_sphincsharaka128frobust", TLSEXT_SIGALG_p256_sphincsharaka128frobust,
+-     NID_undef, -1, EVP_PKEY_P256_SPHINCSHARAKA128FROBUST, SSL_PKEY_P256_SPHINCSHARAKA128FROBUST,
+-     NID_undef, NID_undef},
+-    {"rsa3072_sphincsharaka128frobust", TLSEXT_SIGALG_rsa3072_sphincsharaka128frobust,
+-     NID_undef, -1, EVP_PKEY_RSA3072_SPHINCSHARAKA128FROBUST, SSL_PKEY_RSA3072_SPHINCSHARAKA128FROBUST,
++    {"p521_sphincsharaka256fsimple", TLSEXT_SIGALG_p521_sphincsharaka256fsimple,
++     NID_undef, -1, EVP_PKEY_P521_SPHINCSHARAKA256FSIMPLE, SSL_PKEY_P521_SPHINCSHARAKA256FSIMPLE,
+      NID_undef, NID_undef},
+     {"sphincssha256128frobust", TLSEXT_SIGALG_sphincssha256128frobust,
+      NID_undef, -1, EVP_PKEY_SPHINCSSHA256128FROBUST, SSL_PKEY_SPHINCSSHA256128FROBUST,
+@@ -1477,28 +1425,20 @@ static int sigalg_security_bits(const SIGALG_LOOKUP *lu)
+             secbits = 256;
+         else if(lu->sigalg == TLSEXT_SIGALG_p521_falcon1024)
+             secbits = 256;
+-        else if(lu->sigalg == TLSEXT_SIGALG_picnicl1full)
+-            secbits = 128;
+-        else if(lu->sigalg == TLSEXT_SIGALG_p256_picnicl1full)
+-            secbits = 128;
+-        else if(lu->sigalg == TLSEXT_SIGALG_rsa3072_picnicl1full)
++        else if(lu->sigalg == TLSEXT_SIGALG_sphincsharaka128fsimple)
+             secbits = 128;
+-        else if(lu->sigalg == TLSEXT_SIGALG_picnic3l1)
++        else if(lu->sigalg == TLSEXT_SIGALG_p256_sphincsharaka128fsimple)
+             secbits = 128;
+-        else if(lu->sigalg == TLSEXT_SIGALG_p256_picnic3l1)
++        else if(lu->sigalg == TLSEXT_SIGALG_rsa3072_sphincsharaka128fsimple)
+             secbits = 128;
+-        else if(lu->sigalg == TLSEXT_SIGALG_rsa3072_picnic3l1)
+-            secbits = 128;
+-        else if(lu->sigalg == TLSEXT_SIGALG_rainbowVclassic)
++        else if(lu->sigalg == TLSEXT_SIGALG_sphincsharaka192fsimple)
++            secbits = 192;
++        else if(lu->sigalg == TLSEXT_SIGALG_p384_sphincsharaka192fsimple)
++            secbits = 192;
++        else if(lu->sigalg == TLSEXT_SIGALG_sphincsharaka256fsimple)
+             secbits = 256;
+-        else if(lu->sigalg == TLSEXT_SIGALG_p521_rainbowVclassic)
++        else if(lu->sigalg == TLSEXT_SIGALG_p521_sphincsharaka256fsimple)
+             secbits = 256;
+-        else if(lu->sigalg == TLSEXT_SIGALG_sphincsharaka128frobust)
+-            secbits = 128;
+-        else if(lu->sigalg == TLSEXT_SIGALG_p256_sphincsharaka128frobust)
+-            secbits = 128;
+-        else if(lu->sigalg == TLSEXT_SIGALG_rsa3072_sphincsharaka128frobust)
+-            secbits = 128;
+         else if(lu->sigalg == TLSEXT_SIGALG_sphincssha256128frobust)
+             secbits = 128;
+         else if(lu->sigalg == TLSEXT_SIGALG_p256_sphincssha256128frobust)
+@@ -2946,17 +2886,13 @@ void tls1_set_cert_validity(SSL *s)
+     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_RSA3072_FALCON512);
+     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_FALCON1024);
+     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_P521_FALCON1024);
+-    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_PICNICL1FULL);
+-    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_P256_PICNICL1FULL);
+-    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_RSA3072_PICNICL1FULL);
+-    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_PICNIC3L1);
+-    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_P256_PICNIC3L1);
+-    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_RSA3072_PICNIC3L1);
+-    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_RAINBOWVCLASSIC);
+-    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_P521_RAINBOWVCLASSIC);
+-    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_SPHINCSHARAKA128FROBUST);
+-    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_P256_SPHINCSHARAKA128FROBUST);
+-    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_RSA3072_SPHINCSHARAKA128FROBUST);
++    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_SPHINCSHARAKA128FSIMPLE);
++    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_P256_SPHINCSHARAKA128FSIMPLE);
++    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_RSA3072_SPHINCSHARAKA128FSIMPLE);
++    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_SPHINCSHARAKA192FSIMPLE);
++    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_P384_SPHINCSHARAKA192FSIMPLE);
++    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_SPHINCSHARAKA256FSIMPLE);
++    tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_P521_SPHINCSHARAKA256FSIMPLE);
+     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_SPHINCSSHA256128FROBUST);
+     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_P256_SPHINCSSHA256128FROBUST);
+     tls1_check_chain(s, NULL, NULL, NULL, SSL_PKEY_RSA3072_SPHINCSSHA256128FROBUST);
+diff --git a/ssl/t1_trce.c b/ssl/t1_trce.c
+index e0b9705bf6..98417a30a8 100644
+--- a/ssl/t1_trce.c
++++ b/ssl/t1_trce.c
+@@ -557,14 +557,6 @@ static const ssl_trace_tbl ssl_groups_tbl[] = {
+     {OQS_KEM_CURVEID(NID_hqc128), "hqc128"},
+     {OQS_KEM_CURVEID(NID_hqc192), "hqc192"},
+     {OQS_KEM_CURVEID(NID_hqc256), "hqc256"},
+-    {OQS_KEM_CURVEID(NID_ntrulpr653), "ntrulpr653"},
+-    {OQS_KEM_CURVEID(NID_ntrulpr761), "ntrulpr761"},
+-    {OQS_KEM_CURVEID(NID_ntrulpr857), "ntrulpr857"},
+-    {OQS_KEM_CURVEID(NID_ntrulpr1277), "ntrulpr1277"},
+-    {OQS_KEM_CURVEID(NID_sntrup653), "sntrup653"},
+-    {OQS_KEM_CURVEID(NID_sntrup761), "sntrup761"},
+-    {OQS_KEM_CURVEID(NID_sntrup857), "sntrup857"},
+-    {OQS_KEM_CURVEID(NID_sntrup1277), "sntrup1277"},
+ ///// OQS_TEMPLATE_FRAGMENT_SSL_GROUPS_TBL_END
+ ///// OQS_TEMPLATE_FRAGMENT_SSL_GROUPS_TBL_HYBRID_START
+     {OQS_KEM_CURVEID(NID_p256_frodo640aes), "p256 - frodo640aes hybrid"},
+@@ -593,14 +585,6 @@ static const ssl_trace_tbl ssl_groups_tbl[] = {
+     {OQS_KEM_CURVEID(NID_p256_hqc128), "p256 - hqc128 hybrid"},
+     {OQS_KEM_CURVEID(NID_p384_hqc192), "p384 - hqc192 hybrid"},
+     {OQS_KEM_CURVEID(NID_p521_hqc256), "p521 - hqc256 hybrid"},
+-    {OQS_KEM_CURVEID(NID_p256_ntrulpr653), "p256 - ntrulpr653 hybrid"},
+-    {OQS_KEM_CURVEID(NID_p256_ntrulpr761), "p256 - ntrulpr761 hybrid"},
+-    {OQS_KEM_CURVEID(NID_p384_ntrulpr857), "p384 - ntrulpr857 hybrid"},
+-    {OQS_KEM_CURVEID(NID_p521_ntrulpr1277), "p521 - ntrulpr1277 hybrid"},
+-    {OQS_KEM_CURVEID(NID_p256_sntrup653), "p256 - sntrup653 hybrid"},
+-    {OQS_KEM_CURVEID(NID_p256_sntrup761), "p256 - sntrup761 hybrid"},
+-    {OQS_KEM_CURVEID(NID_p384_sntrup857), "p384 - sntrup857 hybrid"},
+-    {OQS_KEM_CURVEID(NID_p521_sntrup1277), "p521 - sntrup1277 hybrid"},
+ ///// OQS_TEMPLATE_FRAGMENT_SSL_GROUPS_TBL_HYBRID_END
+     {0xFF01, "arbitrary_explicit_prime_curves"},
+     {0xFF02, "arbitrary_explicit_char2_curves"}
+@@ -667,17 +651,13 @@ static const ssl_trace_tbl ssl_sigalg_tbl[] = {
+     {TLSEXT_SIGALG_rsa3072_falcon512, "rsa3072_falcon512"},
+     {TLSEXT_SIGALG_falcon1024, "falcon1024"},
+     {TLSEXT_SIGALG_p521_falcon1024, "p521_falcon1024"},
+-    {TLSEXT_SIGALG_picnicl1full, "picnicl1full"},
+-    {TLSEXT_SIGALG_p256_picnicl1full, "p256_picnicl1full"},
+-    {TLSEXT_SIGALG_rsa3072_picnicl1full, "rsa3072_picnicl1full"},
+-    {TLSEXT_SIGALG_picnic3l1, "picnic3l1"},
+-    {TLSEXT_SIGALG_p256_picnic3l1, "p256_picnic3l1"},
+-    {TLSEXT_SIGALG_rsa3072_picnic3l1, "rsa3072_picnic3l1"},
+-    {TLSEXT_SIGALG_rainbowVclassic, "rainbowVclassic"},
+-    {TLSEXT_SIGALG_p521_rainbowVclassic, "p521_rainbowVclassic"},
+-    {TLSEXT_SIGALG_sphincsharaka128frobust, "sphincsharaka128frobust"},
+-    {TLSEXT_SIGALG_p256_sphincsharaka128frobust, "p256_sphincsharaka128frobust"},
+-    {TLSEXT_SIGALG_rsa3072_sphincsharaka128frobust, "rsa3072_sphincsharaka128frobust"},
++    {TLSEXT_SIGALG_sphincsharaka128fsimple, "sphincsharaka128fsimple"},
++    {TLSEXT_SIGALG_p256_sphincsharaka128fsimple, "p256_sphincsharaka128fsimple"},
++    {TLSEXT_SIGALG_rsa3072_sphincsharaka128fsimple, "rsa3072_sphincsharaka128fsimple"},
++    {TLSEXT_SIGALG_sphincsharaka192fsimple, "sphincsharaka192fsimple"},
++    {TLSEXT_SIGALG_p384_sphincsharaka192fsimple, "p384_sphincsharaka192fsimple"},
++    {TLSEXT_SIGALG_sphincsharaka256fsimple, "sphincsharaka256fsimple"},
++    {TLSEXT_SIGALG_p521_sphincsharaka256fsimple, "p521_sphincsharaka256fsimple"},
+     {TLSEXT_SIGALG_sphincssha256128frobust, "sphincssha256128frobust"},
+     {TLSEXT_SIGALG_p256_sphincssha256128frobust, "p256_sphincssha256128frobust"},
+     {TLSEXT_SIGALG_rsa3072_sphincssha256128frobust, "rsa3072_sphincssha256128frobust"},

@@ -1,0 +1,1 @@
+parallel -j 16 "createdb root{%}; export PGDATABASE=root{%}; ~/nextgen/cleanup.sh; ~/nextgen/import.sh {}; ~/nextgen/analysis.sh {}" ::: ../latencies-pre-*.pcap

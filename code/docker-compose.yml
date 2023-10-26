@@ -1,0 +1,69 @@
+services:
+  client:
+    build:
+      context: docker/clientserver
+      args:
+        OPENSSL_REPO: "https://github.com/tumi8/openssl-pqc.git"
+        OPENSSL_BRANCH: "basic-sphincs-psh"
+        LIBOQS_COMMIT: "2e2ddb4e0493014694820471396984b30d59cf97"
+        FLAME_GRAPH: "False"
+    privileged: true
+    entrypoint: /opt/measurement-openssl-client.sh
+    environment:
+      - KEM_ALG=${KEM_ALG}
+      - SIG_ALG=${SIG_ALG}
+      - RUN=${RUN}
+      - MEASUREMENT_TIME=60
+      - FLAME_GRAPH=${FLAME_GRAPH}
+      - NETEM_TC=${NETEM_TC}
+    volumes:
+      - cert-data:/opt/shared
+      - ${HOST_DIR}/client:/out
+  server:
+    build:
+      context: docker/clientserver
+      args:
+        OPENSSL_REPO: "https://github.com/tumi8/openssl-pqc.git"
+        OPENSSL_BRANCH: "basic-sphincs-psh"
+        LIBOQS_COMMIT: "2e2ddb4e0493014694820471396984b30d59cf97"
+        FLAME_GRAPH: "False"
+    privileged: true
+    entrypoint: /opt/measurement-openssl-server.sh
+    environment:
+      - KEM_ALG=${KEM_ALG}
+      - SIG_ALG=${SIG_ALG}
+      - RUN=${RUN}
+      - FLAME_GRAPH=${FLAME_GRAPH}
+      - NETEM_TC=${NETEM_TC}
+    volumes:
+      - cert-data:/opt/shared
+      - ${HOST_DIR}/server:/out
+  post-processor:
+    build: docker/post-processor
+    entrypoint: ["/opt/run.sh", "/srv/client/latencies-post_run${RUN}.pcap", "/srv/server/latencies-pre_run${RUN}.pcap"]
+    environment:
+      - RUN=${RUN}
+    volumes:
+      - ${HOST_DIR}:/srv/
+  pre-analyzer:
+    build:
+      context: .
+      args:
+        FG_REPO_URL: "https://github.com/brendangregg/FlameGraph.git"
+        FG_REPO_COMMIT: "d9fcc272b6a08c3e3e5b7919040f0ab5f8952d65"
+    environment:
+      - FLAME_GRAPH=${FLAME_GRAPH}
+      - PARALLEL_JOBS=100%
+    volumes:
+      - ${HOST_DIR}:/srv/
+      - ${OUT_DIR}:/out/
+  final-analyzer:
+    build: blackbox_median_analysis
+    environment:
+      - EXPERIMENT=${EXPERIMENT}
+    volumes:
+      - ${HOST_DIR}:/srv/
+      - ${OUT_DIR}:/out/
+
+volumes:
+  cert-data:

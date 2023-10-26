@@ -1,0 +1,3 @@
+kem_alg: ["X25519", "kyber512"]
+sig_alg: ["rsa:2048", "dilithium2"]
+tc: ['']
