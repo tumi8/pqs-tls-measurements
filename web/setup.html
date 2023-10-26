@@ -12,7 +12,7 @@
         <article class="inner-content">
           <div class="inner-content">
             <h1 id="the-chair-of-br-network-architectures-and-services">Hardware Setup</h1>
-            <p>This page describes the hardware setup of our experiments. A similar setup can be used to reporduce our results. For easy repeating of experiments, we provide a docker setup for gaining similar results.</p>
+            <p>This page describes the 3-node hardware timestamping setup used for our experiments. To make our artifacts available to a broad community, we converted all our scripts to run in a containerized 2-node environment that should provide similar results.</p>
 
              <h3>Network Topology</h3>
              <p><img src="{{site.baseurl}}/figures/setup.pdf.svg" style="display:block;margin-left:auto;margin-right:auto;width=90%;" width="500pt" alt="network topology"/></p>
@@ -30,9 +30,9 @@
 
 <p>An optical splitter connects the timestamper with the link between the client and the server.</p>
 
-	<h3>Docker Setup for Repeating of measurements and Evaluation</h3>
+	<h3>Docker Setup for Evaluation and simplified experiments</h3>
 	
-	<p>We prepared a Docker setup with two container to enable simple repeating of our experiments. Caution: The results and precision is different compared to our hardware setup, the trend between different PQS variants we have shown in the paper should remain the same. It is available in our Github repository and has no special requirements: <a href="https://github.com/tumi8/pqs-tls-measurements/tree/main/code">Github Repository</a>. How to use it will be described on this website for the different types of results.</p>
+	<p>We prepared a Docker setup with two containers to repeat of our experiments in arbitrary environments. Caution: The results and precision is different compared to our hardware setup, although, the trends between different PQ variants we have shown in the paper should remain the same. It is available in our Github repository and has no special requirements: <a href="https://github.com/tumi8/pqs-tls-measurements/tree/main/code">Github Repository</a>. How to use it will be described on this website for the different types of results.</p>
           
             <div class="fadein">
             </div>
