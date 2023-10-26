@@ -1,0 +1,86 @@
+---
+# front matter tells Jekyll to process Liquid
+---
+<!DOCTYPE html>
+<html class=" js no-touch svg inlinesvg svgclippaths no-ie8compat" style="">
+  {% include head.html %}
+  <body class="homepage homepage_index">
+    {% include header.html %}
+    <main class="content container" role="main">
+      <div class="content-row">
+	{% include nav.html %}
+        <article class="inner-content">
+          <div class="inner-content">
+            <h1 id="the-chair-of-br-network-architectures-and-services">Software Setup</h1>
+            <p>This page describes the software setup of our experiments. Therefore, we list the dependencies and scripts to setup our ecosystem.</p>
+
+             <h3>Software Versions</h3>
+             <p>Experiment tools:</p>
+             <ul>
+		<li>Operating system: Debian bullseye (Kernel ver 5.10)</li>
+		<li><a href="https://github.com/open-quantum-safe/liboqs">liboqs</a>: A Library for Open-Quantum-Safe-Cryptography, Commit: 2e2ddb4e0493014694820471396984b30d59cf97</li>
+		<li><a href="https://github.com/open-quantum-safe/openssl">OpenSSL Fork for Liboqs</a>: Based on OpenSSL Version 1.1.1, Commit: 82b5b1dcd786e13e3af8fe23823dedf2ed25d206</li>
+		<li>Patch for OpenSSL with liboqs: This patch is needed to support the used Sphincs versions, to include the forced TCP pushes and can be retrieved from this repository: <a href="{{ site.repository }}/tree/main/patches/openssl-sphincs-psh.patch">patches/openssl-sphincs-psh.patch</a>
+		<li>Patch for OpenSSL with liboqs only for Figure 3a: This patch is needed to support the used Sphincs versions and can be retrieved from this repository: <a href="{{ site.repository }}/tree/main/patches/openssl-sphincs.patch">patches/openssl-sphincs.patch</a>
+		</ul>
+             <p>Measurement tools:</p>
+	      <ul>
+		<li>Operating system: Debian bullseye (Kernel ver 5.10)</li>
+		<li><a href="https://github.com/gallenmu/MoonGen">MoonGen</a>: A software packet generator used for capturing the packets with hardware timestamping, Commit: 89b01d2205c55db43651701001bb60486e93ecb1</li>
+		<li>Linux perf: A performance monitoring tool, ver 5.10</li>
+		<li><a href="https://github.com/brendangregg/FlameGraph.git">Flame Graphs</a>: A tool to visualize the results from Linux perf, commit: d9fcc272b6a08c3e3e5b7919040f0ab5f8952d65</li>
+		</ul>
+		<p>Evaluation Tools</p>
+		<ul>
+		<li>Operating system: Debian bullseye (Kernel ver 5.10)</li>
+		<li>PostGreSQL version 13 for database analysis</li>
+		<li>Pypacker, see <a href="https://gitlab.com/mike01/pypacker">https://gitlab.com/mike01/pypacker</a>, for extracting PCAPs into PostGreSQL</li>
+		<li>GNU Parallel, see <a href="https://www.gnu.org/software/parallel/">https://www.gnu.org/software/parallel/</a>, for parallelizing our analysis.</li>
+		<li>TexLive Full, version 2020.20210202-3, for building our Figures.</li>
+		</ul>
+		<h3>Docker Setup</h3>
+		To execute our Docker scripts, we have the following requirements to be installed first:
+		<ul>
+		<li>Installed Docker (<a href="https://docs.docker.com/engine/install/debian/">https://docs.docker.com/engine/install/debian/</a>)</li>
+		<li>Python3 <pre>apt-get install python3</pre></li>
+		<li>Python3 Libraries: <pre>apt-get install python3-click python3-yaml</pre></li>
+		</ul>
+		
+		<h3>Setup</h3>
+		<p>For reproducibility, are we presenting a dockerized evaluation infrastructure to repeat our methodology of analyzing PCAPs.</p>
+                 <p>Following Variables can be set for the Docker files, see the docker-compose-file for the defined variables: <a href="{{ site.repository }}/tree/main/code/docker/docker-compose.yml">Docker Compose File</a></p>
+		<h4>Client</h4>
+		   <details>
+                   <summary>Variables</summary>
+                   {% include variables_client.html %}
+                 </details>
+                   <details>
+                   <summary>Script</summary>
+                   {% include setup_client.html %}
+                 </details>
+
+		<h4>Server</h4>
+		<details>
+                   <summary>Variables</summary>
+                   {% include variables_server.html %}
+                 </details>
+                   <details>
+                   <summary>Script</summary>
+                   {% include setup_server.html %}
+                 </details>
+                
+
+		<h4>Evaluator</h4>
+                   <details>
+                   <summary>Script</summary>
+                   {% include setup_evaluator.html %}
+                 </details>
+
+            <div class="fadein">
+            </div>
+          </div>
+        </article>
+      </div>
+    </main>
+    {% include footer.html %}
+</body></html>

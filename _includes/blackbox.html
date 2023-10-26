@@ -1,0 +1,17 @@
+<p><pre><code>
+#!/bin/bash
+
+cd /root
+
+git clone https://github.com/WiednerF/pqs-tls-measurements experiments
+cd /root/experiment/code/blackbox_analysis
+
+pip3 install -t requirements.txt
+
+# Link the corresponding entries to this folder: kem as kem, sig as sig, level1 as level1, level3 as level3, and level5 as level5
+
+python3 create_analysis.py
+
+python3 derivation_analysis.py
+
+</code></pre></p>

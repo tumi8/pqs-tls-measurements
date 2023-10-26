@@ -1,0 +1,83 @@
+<p><pre><code>
+#!/bin/bash
+
+set -x
+set -e
+
+# First extract all data from the openssl_client results
+mkdir /root/client_results/data_client
+chmod 0777 /root/client_results
+chmod 0777 /root/client_results/data_client
+
+cd /root/client_results
+
+cp /root/experiment-script/code/plotter/csvgenerator_client.py /root/client_results
+
+python3 csvgenerator_client.py data_client .
+
+pos_upload -r /root/client_results/data_client/
+
+# Extracting data from PCAPs
+NUM_CORES=$(pos_get_variable num_cores)
+
+mkdir /root/timer_results/data
+chmod 0777 /root/timer_results
+chmod 0777 /root/timer_results/data
+
+cd /root/timer_results/data
+
+echo "Process PCAPs using ${NUM_CORES} cores"
+
+env --chdir /var/lib/postgresql setpriv --init-groups --reuid postgres -- createuser -s root || true
+
+parallel -j $NUM_CORES "dropdb --if-exists root{\%}; createdb root{\%}; export PGDATABASE=root{\%}; ~/experiment-script/dbscripts/import.sh {}; ~/experiment-script/dbscripts/analysis.sh {}" ::: ../latencies-pre.pcap*.zst
+
+cp -r /root/experiment-script/code/plotter/* /root/timer_results
+cd /root/timer_results
+mkdir /root/timer_results/figures
+python3 plotcreator.py figures data .
+make -i
+
+python3 ~/experiment-script/code/dbscripts/run_tls_analyse.py . data
+
+pos_upload -r /root/timer_results/figures/
+pos_upload -r /root/timer_results/data/
+
+FLAME_GRAPH=$(pos_get_variable -g flame_graph/execute_server)
+if [ "$FLAME_GRAPH" = "True" ]
+then
+    RESULT_PATH="/root/server_results"
+    mkdir $RESULT_PATH/flame_graph/
+    FG_REPO_PATH=$(pos_get_variable -g flame_graph/install/repo_path)
+    for filename in $RESULT_PATH/perf*.data; do
+        mkdir /root/.debug/
+        tar xf "$RESULT_PATH/perf-server.data.tar_$(basename ${filename##*_} .data).bz2" -C ~/.debug
+        perf script -i $filename | $FG_REPO_PATH/stackcollapse-perf.pl > $filename.txt
+        $FG_REPO_PATH/flamegraph.pl $filename.txt > $filename.svg
+        mv $filename.txt $RESULT_PATH/flame_graph/
+        mv $filename.svg $RESULT_PATH/flame_graph/
+        rm -r /root/.debug/
+    done
+    pos_upload -r -o flame_graph_server $RESULT_PATH/flame_graph/
+fi
+
+FLAME_GRAPH=$(pos_get_variable -g flame_graph/execute_client)
+if [ "$FLAME_GRAPH" = "True" ]
+then
+    RESULT_PATH="/root/client_results"
+    mkdir $RESULT_PATH/flame_graph/
+    FG_REPO_PATH=$(pos_get_variable -g flame_graph/install/repo_path)
+    for filename in $RESULT_PATH/perf*.data; do
+        mkdir /root/.debug/
+        tar xf "$RESULT_PATH/perf-client.data.tar_$(basename ${filename##*_} .data).bz2" -C ~/.debug
+        perf script -i $filename | $FG_REPO_PATH/stackcollapse-perf.pl > $filename.txt
+        $FG_REPO_PATH/flamegraph.pl $filename.txt > $filename.svg
+        mv $filename.txt $RESULT_PATH/flame_graph/
+        mv $filename.svg $RESULT_PATH/flame_graph/
+        rm -r /root/.debug/
+    done
+    pos_upload -r -o flame_graph_client $RESULT_PATH/flame_graph/
+fi
+
+
+</code></pre></p>

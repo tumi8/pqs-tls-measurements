@@ -1,0 +1,65 @@
+# Welcome to Jekyll!
+#
+# This config file is meant for settings that affect your whole blog, values
+# which you are expected to set up once and rarely edit after that. If you find
+# yourself editing this file very often, consider using Jekyll's data files
+# feature for the data you need to update frequently.
+#
+# For technical reasons, this file is *NOT* reloaded automatically when you use
+# 'bundle exec jekyll serve'. If you change this file, please restart the server process.
+
+# Site settings
+# These are used to personalize your new site. If you look in the HTML files,
+# you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
+# You can create any custom variable you would like, and they will be accessible
+# in the templates via {{ site.myvariable }}.
+title: The Performance of Post-Quantum TLS1.3
+email: wiedner@net.in.tum.de
+description: >- # this means to ignore newlines until "baseurl:"
+  Quantum Computers (QCs) are fundamentally different from
+  traditional computers and can efficiently solve mathemat-
+  ical problems that are fundamental to the security of our
+  current cryptographic algorithms. Although, current QCs
+  must accommodate more qubits to break these cryptographic
+  algorithms, the concern of “Store-Now-Decrypt-Later” (i.e.,
+  adversaries with adequate resources can store encrypted
+  data today and decrypt them once powerful QCs become
+  available) highlights the necessity to evaluate and adopt
+  quantum-safe approaches as soon as possible. In this work,
+  we investigated the performance impact of Post-Quantum
+  Cryptography (PQC) on the TLS protocol. Different signa-
+  ture algorithms and key agreements (as proposed by the
+  National Institute of Standards and Technology (NIST)) are
+  examined through black- and white-box measurements to get
+  a precise handshake latency and the computational costs per
+  participating library. Our results revealed that both pre- and
+  post-quantum algorithms are CPU bound. However, HQC
+  and Kyber are on-par with our current state-of-the-art while
+  Dilithium and Falcon are even faster. We observed no perfor-
+  mance drawback from using hybrid algorithms; moreover, on
+  higher NIST security levels PQC outperforms any algorithm
+  we use today. Hence, we can conclude that post-quantum
+  TLS is suitable for today’s systems
+domain: "wiednerf.github.io"
+baseurl: "/pqs-tls-measurements" # the subpath of your site, e.g. /blog
+url: "https://tumi8.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+repository: "https://github.com/tumi8/pqs-tls-measurements"
+github_username:  wiednerf
+
+# Build settings
+markdown: kramdown
+theme: minima
+plugins:
+  - jekyll-feed
+
+# Exclude from processing.
+# The following items will not be processed, by default. Create a custom list
+# to override the default setting.
+# exclude:
+#   - Gemfile
+#   - Gemfile.lock
+#   - node_modules
+#   - vendor/bundle/
+#   - vendor/cache/
+#   - vendor/gems/
+#   - vendor/ruby/

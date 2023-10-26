@@ -1,0 +1,104 @@
+---
+# front matter tells Jekyll to process Liquid
+---
+<!DOCTYPE html>
+<html class=" js no-touch svg inlinesvg svgclippaths no-ie8compat" style="">
+  {% include head.html %}
+  <body class="homepage homepage_index">
+    {% include header.html %}
+    <main class="content container" role="main">
+      <div class="content-row">
+	{% include nav.html %}
+        <article class="inner-content">
+          <div class="inner-content">
+            <h1 id="the-chair-of-br-network-architectures-and-services">Table 2a</h1>
+            <p>Handshake latency, and data usage. KEMs combined with rsa:2048 as SIG.</p>
+
+             <h3>Full Table</h3>
+             <p><img src="{{ site.baseurl }}/figures/kem/table-kem.pdf.svg" alt="Table 2a in full length." style="display:block;margin-left:auto;margin-right:auto;width=90%;"></p>
+
+	    <h3>Setup</h3>
+	    As described in detail on the <a href="{{ site.baseurl }}/web/setup.html">hardware setup</a> and <a href="{{ site.baseurl }}/web/software-setup.html">software setup</a> pages. Using the execution option with docker will automatically do this for you after installing Dockers prerequisites.
+		<p></p>
+	    <h3>Experiment</h3>
+
+	    <p>The following loop variable file contains all KEMs and one SIG for the experiment</p>
+	      <details>
+                   <summary>Loop variables for all KEMs</summary>
+                   {% include loop_vars_kem.html %}
+                 </details>
+            <p>Next, we start the OpenSSL server on the server node:</p>
+	    	      <details>
+                   <summary>Server</summary>
+                   {% include experiment_server.html %}
+                 </details>
+            <p>In the last step, we start the OpenSSL client on the client node:</p>
+            	    	      <details>
+                   <summary>Client</summary>
+                   {% include experiment_client.html %}
+                 </details>
+            <p>The client automatically stops after the predefined measurement time, while the timer and the server need to receive a SIG INT signal to terminate.</p>
+	   
+	    <h3>Experiment with Docker</h3>
+	   	<p>Clone first the <a href="{site.repository}">repository</a> and then change your current folder to code folder within the cloned repository.</p>
+	   	<p>Execute the following command:</p>
+	   	<pre>./experiment.py --output-dir /opt/experiments all-kem</pre>
+	   	<p></p> 
+	    <h3>Evaluation</h3>
+	    <p>After the experiment, the results are available in the results folder for client, server, and timestamper. In case of Docker, we only have two folders because of our two node setup and need to copy all PCAPs to the timestamper folder. This step can be done using our prepared data from the hardware timestamping or the results from the Docker-based experiment.</p>
+	                	    	      <details>
+                   <summary>Client</summary>
+                                      <p>Under client_results on the evaluator all files from the client need to be added.</p>
+                 </details>
+                 	                	    	      <details>
+                   <summary>Timestamper</summary>
+                                      <p>Under timer_results on the evaluator all files PCAPs need to be added.</p>
+                 </details>
+            <p>The evaluation script loads all PCAPs into a postgressql database and analyzes the data. Finally, the scripts generates CSVs with the corresponding data:</p>
+                        	    	      <details>
+                   <summary>Evaluator</summary>
+                   {% include evaluate.html %}
+                 </details>
+	    <p>The results files are now located in the selected results folder. The following files were used to create the table:</p>
+	    <ul>
+	    	<li>*.crt: The used certificate</li>
+	    	<li>*client_results.csv: This file contains the number of connections and the possibility to link run number with KEM and SIG.</li>
+	    	<li>*dump-tcp-segments.csv: The number of TCP segments between server and client during the handshake.</li>
+	    	<li>*median.csv: The median latency in different parts of the handshake according to the further description in the file name.</li>
+	    </ul>
+	    <p>These files are used together with the blackbox_analysis script to generate the shown table. This step is included as final_analyzer in the docker scripts.</p>
+	             <details>
+	             <summary>Blackbox analysis</summary>
+                   {% include blackbox.html %}
+                 </details>
+
+
+	    <h3>Docker Evaluation Execution</h3>
+	    	    <p>To execute the evaluation using docker, docker and its dependencies needs to be installed on the systems. The current working directory must be at the <a href="{{ site.repository }}/code">code</a> folder.</p>
+	                            	    	      <details>
+	                       <summary>Based on previous Docker Experiment</summary>
+                   {% include docker-kem.html %}
+                 </details>
+                 <details>
+	                       <summary>Based on Data from our <a href="https://mediatum.ub.tum.de/1725057" >MediaTUM</a> repository:</summary>
+                   {% include pcaps-kem.html %}
+                 </details>
+                <p>This executes all evaluation steps.</p>
+
+	    <h3>Scripts and Data</h3>
+	    <p>The following repository contains all files and results including raw PCAPs:</p>
+	    <ul>
+	    	<li><a href="{{ site.repository }}/code">code</a>: The code necessary to execute the experiments.</li>
+	    	<li><a href="https://dataserv.ub.tum.de/index.php/s/m1725057">Client results under all-kem/client</a>: Contains the outputs of the scripts executed on the client.</li>
+	    	<li><a href="https://dataserv.ub.tum.de/index.php/s/m1725057">Server results under all-kem/server</a>: Contains the outputs of the scripts executed on the server.</li>
+	    	<li><a href="https://dataserv.ub.tum.de/index.php/s/m1725057">Timestamper results under all-kem/timestamper</a>: Contains the PCAPs of the experiment.</li>
+	    </ul>
+
+            <div class="fadein">
+            </div>
+          </div>
+        </article>
+      </div>
+    </main>
+    {% include footer.html %}
+</body></html>

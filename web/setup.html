@@ -1,0 +1,44 @@
+---
+# front matter tells Jekyll to process Liquid
+---
+<!DOCTYPE html>
+<html class=" js no-touch svg inlinesvg svgclippaths no-ie8compat" style="">
+  {% include head.html %}
+  <body class="homepage homepage_index">
+    {% include header.html %}
+    <main class="content container" role="main">
+      <div class="content-row">
+	{% include nav.html %}
+        <article class="inner-content">
+          <div class="inner-content">
+            <h1 id="the-chair-of-br-network-architectures-and-services">Hardware Setup</h1>
+            <p>This page describes the hardware setup of our experiments. A similar setup can be used to reporduce our results. For easy repeating of experiments, we provide a docker setup for gaining similar results.</p>
+
+             <h3>Network Topology</h3>
+             <p><img src="{{site.baseurl}}/figures/setup.pdf.svg" style="display:block;margin-left:auto;margin-right:auto;width=90%;" width="500pt" alt="network topology"/></p>
+
+
+		<h3>Hardware</h3>
+
+<p>All tree nodes are equipped with identical hardware consisting of:</p>
+
+<ul>
+	<li>SoC: Intel Xeon D-1518 CPU</li>
+	<li>Dual port Intel X552 NIC (10G Ethernet)</li>
+	<li>32 GiB RAM</li>
+</ul>
+
+<p>An optical splitter connects the timestamper with the link between the client and the server.</p>
+
+	<h3>Docker Setup for Repeating of measurements and Evaluation</h3>
+	
+	<p>We prepared a Docker setup with two container to enable simple repeating of our experiments. Caution: The results and precision is different compared to our hardware setup, the trend between different PQS variants we have shown in the paper should remain the same. It is available in our Github repository and has no special requirements: <a href="https://github.com/tumi8/pqs-tls-measurements/tree/main/code">Github Repository</a>. How to use it will be described on this website for the different types of results.</p>
+          
+            <div class="fadein">
+            </div>
+          </div>
+        </article>
+      </div>
+    </main>
+    {% include footer.html %}
+</body></html>

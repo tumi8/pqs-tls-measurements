@@ -1,0 +1,16 @@
+<nav class="navigation">
+	<ul class="nav-list">
+		<li {% if page.url == "/" %}class="current_path current"{% endif %}><a href="{{ site.baseurl }}/">Home</a></li>
+		<li {% if page.url == "/web/setup.html" %}class="current_path current"{% endif %}><a href="{{ site.baseurl }}/web/setup.html">Hardware Setup</a></li>
+		<li {% if page.url == "/web/software-setup.html" %}class="current_path current"{% endif %}><a href="{{ site.baseurl }}/web/software-setup.html">Software Setup</a></li>
+	</ul>
+	<div style="padding: 10pt 5pt 5pt 5pt; background-color: white"><b>The Performance of Post-Quantum TLS1.3</b></div>
+	<ul class="nav-list">
+		<li {% if page.url == "/web/kem.html" %}class="current_path current"{% endif %}><a href="{{ site.baseurl }}/web/kem.html">Table 2a</a></li>
+		<li {% if page.url == "/web/sig.html" %}class="current_path current"{% endif %}><a href="{{ site.baseurl }}/web/sig.html">Table 2b</a></li>
+		<li {% if page.url == "/web/deviation.html" %}class="current_path current"{% endif %}><a href="{{ site.baseurl }}/web/deviation.html">Figure 3</a></li>
+		<li {% if page.url == "/web/whitebox.html" %}class="current_path current"{% endif %}><a href="{{ site.baseurl }}/web/whitebox.html">Table 3</a></li>
+		<li {% if page.url == "/web/ranking.html" %}class="current_path current"{% endif %}><a href="{{ site.baseurl }}/web/ranking.html">Figure 4</a></li>
+		<li {% if page.url == "/web/netem.html" %}class="current_path current"{% endif %}><a href="{{ site.baseurl }}/web/netem.html">Table 4</a></li>
+	</ul>
+</nav>

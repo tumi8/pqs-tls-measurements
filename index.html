@@ -1,0 +1,30 @@
+---
+# front matter tells Jekyll to process Liquid
+---
+<!DOCTYPE html>
+<html class=" js no-touch svg inlinesvg svgclippaths no-ie8compat" style="">
+  {% include head.html %}
+  <body class="homepage homepage_index">
+    {% include header.html %}
+    <main class="content container" role="main">
+      <div class="content-row">
+	{% include nav.html %}
+        <article class="inner-content">
+          <div class="inner-content">
+            <h1 id="the-chair-of-br-network-architectures-and-services">The Performance of Post-Quantum TLS1.3</h1>
+            <p>This page describes the scripts and data necessary to reproduce the evaluation of the paper: "The Performance of Post-Quantum TLS1.3", a collobaration between TUM and Nokia Bell Labs.</p>
+		
+            <div class="fadein">
+            	The data and scripts can be found in the following places:
+            	<ul>
+            		<li>Scripts including a easy-to-setup docker version of our experiments is available at <a href="https://github.com/tumi8/pqs-tls-measurements">our main Github Repository</a>.</li>
+            		<li>Raw Data from our measurements with hardware timestamping usable for re-evaluation is available on <a href="https://mediatum.ub.tum.de/1725057">MediaTUM</a>, DOI is <a href="https://doi.org/10.14459/2023mp1725057">10.14459/2023mp1725057</a>.</li>
+            		<li>The used OpenSSL Fork can be found at <a href="https://github.com/tumi8/openssl-pgc">OpenSSL Github Repository</a> containing a fork of the Open Quantum Safe's project OpenSSL version.</li>
+            	</ul>
+            </div>
+          </div>
+        </article>
+      </div>
+    </main>
+    {% include footer.html %}
+</body></html>
