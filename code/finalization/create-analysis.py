@@ -138,6 +138,7 @@ def extract_run(file_name: str):
 def analyze_dir(result_dir: pathlib.Path, output_writer: csv.DictWriter):
     results = defaultdict(lambda: dict())
     result_name = os.path.basename(result_dir)
+    full_sphincs = False
 
     for file_name in os.listdir(result_dir):
         result_file = result_dir / file_name
@@ -153,6 +154,8 @@ def analyze_dir(result_dir: pathlib.Path, output_writer: csv.DictWriter):
                     results[run]['kem'] = kem.replace('_', '\\_')
                     sig = run_vars.get('sig_alg')
                     results[run]['sig'] = sig.replace('_', '\\_')
+                    if 'sphincssha' in sig:
+                        full_sphincs = True
 
                     if run_vars.get('tc') is not None:
                         results[run]['trafficEmulation'] = run_vars.get('tc')
@@ -258,7 +261,7 @@ def analyze_dir(result_dir: pathlib.Path, output_writer: csv.DictWriter):
             run['kem'] = 'p256'
         sig: str = run['sig']
 
-        if ('sphincs' not in result_name) and 'sphincsharaka' in sig:
+        if not full_sphincs and 'sphincsharaka' in sig:
             sig = sig.replace('haraka', '').replace('fsimple', '')
             run['sig'] = sig
 

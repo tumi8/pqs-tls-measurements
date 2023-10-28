@@ -20,9 +20,7 @@ parallel -j $PARALLEL_JOBS "dropdb --if-exists root{%}; createdb root{%}; export
 
 python3 /opt/dbscripts/run_tls_analyse.py /srv/timestamper /out
 
-if [ "$CPU_PROFILING" = "True" ]
-then
-
+if [[ "$CPU_PROFILING" == "True" ]]; then
     for filename in /srv/server/perf*.data; do
         mkdir /root/.debug/
         tar xf "/srv/server/perf-server.data.tar_$(basename ${filename##*_} .data).bz2" -C ~/.debug

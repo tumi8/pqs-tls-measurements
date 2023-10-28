@@ -2,6 +2,7 @@
 
 [[ -z "$HOST_DIR" ]] && echo "Need to set HOST_DIR" && exit 1;
 [[ -z "$OUT_DIR" ]] && echo "Need to set OUT_DIR" && exit 1;
+[[ -z "$CPU_PROFILING" ]] && echo "Need to set CPU_PROFILING" && exit 1;
 
 COMPOSE_FILE=docker-compose.yml
 

@@ -13,4 +13,6 @@ if [[ $DEVIATION_ANALYSIS == "True" ]]; then
     /opt/create-deviation-plot.py $out_name/derivations.csv $out_name/deviations
 fi
 
-/opt/eval_profiling.py /srv > $out_name/latencies.csv $out_name/profiling.csv
+if [[ "$CPU_PROFILING" == "True" ]]; then
+  /opt/eval_profiling.py /srv > $out_name/latencies.csv $out_name/profiling.csv
+fi

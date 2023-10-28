@@ -44,7 +44,7 @@ def main(input_dirs: List[str], output_dir: str, cpu_profiling: bool, deviation_
         logging.info(f'Starting Pre-Analyse of {experiment}')
         run_analysis(input_dir, output_dir / experiment, cpu_profiling, 'run_pre_analyse.sh', experiment, deviation_analysis)
         logging.info(f'Starting Final-Analyse of {experiment}')
-        run_analysis(output_dir / experiment, output_dir / f'{experiment}-final', False, 'run_final_analyse.sh', experiment, deviation_analysis)
+        run_analysis(output_dir / experiment, output_dir / f'{experiment}-final', cpu_profiling, 'run_final_analyse.sh', experiment, deviation_analysis)
 
 
 if __name__ == '__main__':

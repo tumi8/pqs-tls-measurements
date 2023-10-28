@@ -58,6 +58,7 @@ services:
     build: finalization
     environment:
       - EXPERIMENT=${EXPERIMENT}
+      - CPU_PROFILING=${CPU_PROFILING}
       - DEVIATION_ANALYSIS=${DEVIATION_ANALYSIS}
     volumes:
       - ${HOST_DIR}:/srv/
