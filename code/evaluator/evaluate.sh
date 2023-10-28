@@ -20,17 +20,14 @@ parallel -j $PARALLEL_JOBS "dropdb --if-exists root{%}; createdb root{%}; export
 
 python3 /opt/dbscripts/run_tls_analyse.py /srv/timestamper /out
 
-if [ "$FLAME_GRAPH" = "True" ]
+if [ "$CPU_PROFILING" = "True" ]
 then
-    mkdir $OUT_DIR/flame_graph/
-    [[ -z "$FG_REPO_PATH" ]] && echo "Need to set FG_REPO_PATH" && exit 1;
 
     for filename in /srv/server/perf*.data; do
         mkdir /root/.debug/
         tar xf "/srv/server/perf-server.data.tar_$(basename ${filename##*_} .data).bz2" -C ~/.debug
         OUT_NAME=$(basename $filename)
-        perf script -i $filename | $FG_REPO_PATH/stackcollapse-perf.pl > $OUT_DIR/$OUT_NAME.txt
-        $FG_REPO_PATH/flamegraph.pl $filename.txt > $OUT_DIR/$OUT_NAME.svg
+        perf report -f -i "$filename" -s dso -g none -F overhead,period,sample > $OUT_DIR/$OUT_NAME.txt
         rm -r /root/.debug/
     done
 
@@ -38,8 +35,7 @@ then
         mkdir /root/.debug/
         tar xf "/srv/client/perf-client.data.tar_$(basename ${filename##*_} .data).bz2" -C ~/.debug
         OUT_NAME=$(basename $filename)
-        perf script -i $filename | $FG_REPO_PATH/stackcollapse-perf.pl > $OUT_DIR/$OUT_NAME.txt
-        $FG_REPO_PATH/flamegraph.pl $filename.txt > $OUT_DIR/$OUT_NAME.svg
+        perf report -f -i "$filename" -s dso -g none -F overhead,period,sample > $OUT_DIR/$OUT_NAME.txt
         rm -r /root/.debug/
     done
 fi

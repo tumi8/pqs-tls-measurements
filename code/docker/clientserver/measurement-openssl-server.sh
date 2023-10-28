@@ -45,12 +45,12 @@ echo "{\"tc\": \"$NETEM_TC\", \"kem_alg\": \"$KEM_ALG\", \"sig_alg\": \"$SIG_ALG
 bash -c "tcpdump -w /out/latencies-pre_run${RUN}.pcap dst host $SERVER_IP and dst port 4433" &
 TCPDUMP_PID=$!
 
-if [ "$FLAME_GRAPH" = "True" ]
+if [ "$CPU_PROFILING" = "True" ]
 then
-  echo "will save flame graphs"
+  echo "will save cpu profiling"
   FG_FREQUENCY=96
   bash -c "perf record -o /out/perf-dut.data -F ${FG_FREQUENCY} -C 1 -g" &
-  FLAME_GRAPH_PID=$!
+  PERF_PID=$!
 fi
 
 # Start a TLS1.3 test server based on OpenSSL accepting only the specified KEM_ALG
@@ -59,11 +59,11 @@ bash -c "taskset -c 1 ${OPENSSL} s_server -cert $SERVER_CRT.crt -key $SERVER_CRT
 sleep 30
 
 kill -2 $TCPDUMP_PID
-kill $FLAME_GRAPH_PID
 
-if [ "$FLAME_GRAPH" = "True" ]
+if [ "$CPU_PROFILING" = "True" ]
 then
+    kill $PERF_PID
     sleep 30
     perf archive /out/perf-client.data
-    echo "Flame graph data can be found at /out/perf-client.data"
+    echo "CPU profiling data can be found at /out/perf-client.data"
 fi

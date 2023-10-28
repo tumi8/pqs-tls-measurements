@@ -51,8 +51,8 @@ RUN ./config shared ${OPENSSL_BUILD_DEFINES} --prefix=${OPENSSL_PATH} && \
     make ${MAKE_DEFINES} && \
     make install
 
-ARG FLAME_GRAPH
-RUN if [ "$FLAME_GRAPH" = "True" ]; then \
+ARG CPU_PROFILING
+RUN if [ "$CPU_PROFILING" = "True" ]; then \
     apt-get install -y linux-perf; fi
 
 ENV OPENSSL "${OPENSSL_PATH}/bin/openssl"

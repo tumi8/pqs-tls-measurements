@@ -25,11 +25,11 @@ cd "$OPENSSL_PATH" || exit
 
 echo "Running $0 with SIG_ALG=$SIG_ALG and KEM_ALG=$KEM_ALG"
 
-if [ "$FLAME_GRAPH" = "True" ]; then
-  echo "Will export flame graphs"
+if [ "$CPU_PROFILING" = "True" ]; then
+  echo "Will export cpu profiling"
   FG_FREQUENCY=96
   bash -c "perf record -o /out/perf-client.data -F ${FG_FREQUENCY} -C 1 -g" &
-  FLAME_GRAPH_PID=$!
+  PERF_PID=$!
 fi
 
 bash -c "tcpdump -w /out/latencies-post_run${RUN}.pcap src host $SERVER_IP and src port 4433" &
@@ -42,19 +42,19 @@ sleep 5
 # Run handshakes for $TEST_TIME seconds
 bash -c "taskset -c 1 ${OPENSSL} s_time -curves $KEM_ALG  -connect $SERVER_IP:4433 -new -time $MEASUREMENT_TIME -verify 1 -www '/' -CAfile $CA_DIR/CA.crt > /out/opensslclient_run${RUN}.stdout 2> /out/opensslclient_run${RUN}.stderr"
 
-if [ "$FLAME_GRAPH" = "True" ]
+if [ "$CPU_PROFILING" = "True" ]
 then
-    kill $FLAME_GRAPH_PID
+    kill $PERF_PID
 fi
 
 sleep 30  # Make sure it is finished and written out
 
 kill -2 $TCPDUMP_PID
 
-if [ "$FLAME_GRAPH" = "True" ]
+if [ "$CPU_PROFILING" = "True" ]
 then
     perf archive /out/perf-client.data
-    echo "Flame graph data can be found at /out/perf-client.data"
+    echo "CPU profiling data can be found at /out/perf-client.data"
 fi
 
 echo "client finished sending $(date), results can be found at /out/results-openssl-$KEM_ALG-$SIG_ALG.txt"

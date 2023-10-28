@@ -238,7 +238,7 @@ def analyze_dir(result_dir: pathlib.Path, output_writer: csv.DictWriter):
                     results[run]['partBAvg'] = float(entry['latency_avg'])
 
         else:
-            logging.info(f'Unknown file {result_file}')
+            logging.debug(f'Unknown file {result_file}')
 
     output = results.values()
     output = sorted(output, key=lambda x: (x.get('level'), x.get('kem'), x.get('sig')))
@@ -265,8 +265,11 @@ def analyze_dir(result_dir: pathlib.Path, output_writer: csv.DictWriter):
         for part in ['A', 'B', 'All']:
             for part_name in ['Median', 'Avg']:
                 entry_name = f'part{part}{part_name}'
-                part_ms = run[entry_name] / 1000000
-                run[entry_name] = part_ms
+                if entry_name in run:
+                    part_ms = run[entry_name] / 1000000
+                    run[entry_name] = part_ms
+                else:
+                    logging.error(f'No {entry_name} in run')
 
         if run.get('connections'):
             run['connections'] = human_format(run.get('connections'))

@@ -75,9 +75,15 @@ setupdb(){
 	psql -1 -X -v ON_ERROR_STOP=1 --pset pager=off -f "${BASEDIR}/sql/import/ddl.sql"
 }
 
+setindeces(){
+	psql -1 -X -v ON_ERROR_STOP=1 --pset pager=off -f "${BASEDIR}/sql/import/indeces.sql"
+}
+
 
 test $# -lt 1 && help
 
 setupdb
 
 import "$@"
+
+setindeces

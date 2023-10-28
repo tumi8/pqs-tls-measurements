@@ -5,11 +5,13 @@
 
 COMPOSE_FILE=docker-compose.yml
 
+echo "Building docker images..."
 docker --log-level ERROR compose -f $COMPOSE_FILE build --quiet final-analyzer
 
 # Start Analyze
 docker --log-level ERROR compose -f $COMPOSE_FILE up --exit-code-from final-analyzer final-analyzer
 status=$?
+docker --log-level ERROR compose -f $COMPOSE_FILE logs final-analyzer > $OUT_DIR/docker.log
 
 # Cleanup container
 docker --log-level ERROR compose -f $COMPOSE_FILE down final-analyzer

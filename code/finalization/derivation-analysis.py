@@ -34,7 +34,7 @@ def retrieve_cross_data(cross_algorithm_file, default_sig, default_kem):
         row['num_kem'] = np.where(unqiue_kem == row['kem'])[0][0] + 1
         return row
 
-    return d_level.apply(lambda row: add_unique_kem(row), axis=1), float(d_level[(d_level['kem'] == default_kem) & (d_level['sig'] == default_sig)]['partAllMedian'])
+    return d_level.apply(lambda row: add_unique_kem(row), axis=1), float(d_level[(d_level['kem'] == default_kem) & (d_level['sig'] == default_sig)]['partAllMedian'].iloc[0])
 
 
 def add_expectation(data, sig, kem, baseline):
@@ -43,7 +43,7 @@ def add_expectation(data, sig, kem, baseline):
         sig_part = sig[sig['sig'] == row['sig']]['partAllMedian']
         kem_part = kem[kem['kem'] == row['kem']]['partAllMedian']
         row['expected'] = float(sig_part.iloc[0]) + float(kem_part.iloc[0]) - baseline
-        row['variance'] = round(row['expected'] - row['partAllMedian'])
+        row['variance'] = np.round(row['expected'] - row['partAllMedian'], decimals=6)
         row['percent'] = round(row['variance']/row['expected'] * 100)
         return row
 
@@ -52,8 +52,9 @@ def add_expectation(data, sig, kem, baseline):
 
 
 @click.command()
-@click.argument('from-file', required=True, type=click.Path(exists=True, dir_okay=False, file_okay=True, path_type=pathlib.Path))
+@click.argument('from-file', required=True, type=click.Path(exists=True, dir_okay=False, file_okay=True))
 def main(from_file: pathlib.Path):
+    from_file = pathlib.Path(from_file)
     sig_algorithm = from_file
     cross = from_file
     kem_algorithm = from_file

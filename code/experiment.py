@@ -18,7 +18,7 @@ def run_experiment(run, output_dir, kem: str, sig: str, tc: str):
     subprocess_env['KEM_ALG'] = kem
     subprocess_env['SIG_ALG'] = sig
     subprocess_env['NETEM_TC'] = tc
-    subprocess_env['FLAME_GRAPH'] = 'False'
+    subprocess_env['CPU_PROFILING'] = 'False'
     subprocess_env['RUN'] = f'{run:03d}'
     subprocess_env['HOST_DIR'] = str(output_dir)
     subprocess_env['OUT_DIR'] = str(output_dir)
@@ -27,10 +27,11 @@ def run_experiment(run, output_dir, kem: str, sig: str, tc: str):
 
 
 @click.command()
-@click.option('-o', '--output-dir', required=True, type=click.Path(file_okay=False, dir_okay=True, path_type=pathlib.Path))
+@click.option('-o', '--output-dir', required=True, type=click.Path(file_okay=False, dir_okay=True))
 @click.argument('experiments', nargs=-1, required=True, type=click.Choice(loop_var_options, case_sensitive=False))
-def main(experiments: List[str], output_dir: pathlib.Path):
+def main(experiments: List[str], output_dir: str):
     logging.basicConfig(level=logging.INFO)
+    output_dir = pathlib.Path(output_dir)
     if output_dir.exists():
         raise click.ClickException('Output Directory already exists, please specify a new directory')
     output_dir.mkdir()

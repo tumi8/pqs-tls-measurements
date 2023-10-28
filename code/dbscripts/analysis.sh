@@ -56,7 +56,7 @@ analysis() {
   psql -q -X -v ON_ERROR_STOP=1 -v "name=$name" -v "trim_ms=$TRIM_MS" -f "$BASEDIR/sql/evaluation/client_server_hello/latency-avg.sql" > "${bname}.trim_ms$TRIM_MS.client_server_hello.avg.csv"
   psql -q -X -v ON_ERROR_STOP=1 -v "name=$name" -v "trim_ms=$TRIM_MS" -f "$BASEDIR/sql/evaluation/client_hello_change_cipher/latency-avg.sql" > "${bname}.trim_ms$TRIM_MS.client_hello_change_cipher.avg.csv"
   psql -q -X -v ON_ERROR_STOP=1 -v "name=$name" -v "trim_ms=$TRIM_MS" -f "$BASEDIR/sql/evaluation/server_hello_change_cipher/latency-avg.sql" > "${bname}.trim_ms$TRIM_MS.server_hello_change_cipher.avg.csv"
-
+}
 
 test $# -lt 1 && help
 

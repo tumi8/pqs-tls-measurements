@@ -17,56 +17,64 @@ logger = logging.getLogger()
 @click.argument('pre', type=click.Path(file_okay=True, dir_okay=False, exists=True))
 @click.argument('post', type=click.Path(file_okay=True, dir_okay=False, exists=True))
 def main(pre, post):
-    pre_pcap = ppcap.Reader(pre)
-    post_pcap = ppcap.Reader(post)
+    n = 0
+    try:
+        pre_pcap = ppcap.Reader(pre)
+        post_pcap = ppcap.Reader(post)
 
-    handshake_start = None
-    handshake_response = None
-    handshake_c_packets = None
-    handshake_c_bytes = 0
-    handshake_s_packets = None
-    handshake_s_bytes = 0
-    handshake_s_pushs = 0
-    phase = None
+        handshake_start = None
+        handshake_response = None
+        handshake_c_packets = None
+        handshake_c_bytes = 0
+        handshake_s_packets = None
+        handshake_s_bytes = 0
+        handshake_s_pushs = 0
+        phase = None
 
-    csv_writer = csv.DictWriter(sys.stdout, fieldnames=['handshake_start', 'handshake_response', 'handshake_duration', 'handshake_c_packets', 'handshake_s_packets', 'handshake_s_tcp_pushs', 'handshake_s_bytes', 'handshake_c_bytes'])
-    csv_writer.writeheader()
+        csv_writer = csv.DictWriter(sys.stdout, fieldnames=['handshake_start', 'handshake_response', 'handshake_duration', 'handshake_c_packets', 'handshake_s_packets', 'handshake_s_tcp_pushs', 'handshake_s_bytes', 'handshake_c_bytes'])
+        csv_writer.writeheader()
 
-    for source, ts, ip_data, tcp_data, tls_data in tls_reader(pre_pcap, post_pcap):
-        if source == 'post' and tcp_data.get('push_flag'):
-            handshake_s_pushs += 1
-        if source == 'pre' and ip_data is not None and ip_data.get('length'):
-            handshake_c_bytes += ip_data.get('length')
-        if source == 'post' and ip_data is not None and ip_data.get('length'):
-            handshake_s_bytes += ip_data.get('length')
-        if source == 'pre' and tls_data.get('type') == 'ClientHello':
-            handshake_start = ts
-            handshake_response = None
-            handshake_c_packets = 1
-            handshake_c_bytes = ip_data.get('length')
-            handshake_s_packets = 0
-            handshake_s_bytes = 0
-            handshake_s_pushs = 0
-            phase = 'ch'
-        elif phase == 'ch' and source == 'pre' and tcp_data.get('body_len') > 0:
-            handshake_c_packets += 1
-        elif phase =='ch' and source == 'post' and tls_data.get('type') == 'ServerHello':
-            handshake_s_packets += 1
-            handshake_response = ts
-            phase = 'sh'
-        elif phase == 'sh' and source == 'post' and tcp_data.get('body_len') > 0:
-            handshake_s_packets += 1
-        elif phase == 'sh' and source == 'pre' and tls_data.get('protocol') == "ChangeCipherSpec":
-            csv_writer.writerow({
-                'handshake_start': handshake_start,
-                'handshake_response': handshake_response - handshake_start,
-                'handshake_duration': ts - handshake_start,
-                'handshake_c_packets': handshake_c_packets,
-                'handshake_c_bytes': handshake_c_bytes,
-                'handshake_s_packets': handshake_s_packets,
-                'handshake_s_bytes': handshake_s_bytes,
-                'handshake_s_tcp_pushs': handshake_s_pushs,
-            })
+        for source, ts, ip_data, tcp_data, tls_data in tls_reader(pre_pcap, post_pcap):
+            n += 1
+            if tcp_data.get('body_len') is None:
+                logging.error(f'Corrupt (last?) TCP Packet with empty body, stop')
+                break
+            if source == 'post' and tcp_data.get('push_flag'):
+                handshake_s_pushs += 1
+            if source == 'pre' and ip_data is not None and ip_data.get('length'):
+                handshake_c_bytes += ip_data.get('length')
+            if source == 'post' and ip_data is not None and ip_data.get('length'):
+                handshake_s_bytes += ip_data.get('length')
+            if source == 'pre' and tls_data.get('type') == 'ClientHello':
+                handshake_start = ts
+                handshake_response = None
+                handshake_c_packets = 1
+                handshake_c_bytes = ip_data.get('length')
+                handshake_s_packets = 0
+                handshake_s_bytes = 0
+                handshake_s_pushs = 0
+                phase = 'ch'
+            elif phase == 'ch' and source == 'pre' and tcp_data.get('body_len') > 0:
+                handshake_c_packets += 1
+            elif phase =='ch' and source == 'post' and tls_data.get('type') == 'ServerHello':
+                handshake_s_packets += 1
+                handshake_response = ts
+                phase = 'sh'
+            elif phase == 'sh' and source == 'post' and tcp_data.get('body_len') > 0:
+                handshake_s_packets += 1
+            elif phase == 'sh' and source == 'pre' and tls_data.get('protocol') == "ChangeCipherSpec":
+                csv_writer.writerow({
+                    'handshake_start': handshake_start,
+                    'handshake_response': handshake_response - handshake_start,
+                    'handshake_duration': ts - handshake_start,
+                    'handshake_c_packets': handshake_c_packets,
+                    'handshake_c_bytes': handshake_c_bytes,
+                    'handshake_s_packets': handshake_s_packets,
+                    'handshake_s_bytes': handshake_s_bytes,
+                    'handshake_s_tcp_pushs': handshake_s_pushs,
+                })
+    except Exception as e:
+        logging.exception(f'Expection occurred after parsing {n} packets', exc_info=e)
 
 
 def tls_reader(pre: ppcap.Reader, post: ppcap.Reader):
