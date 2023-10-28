@@ -71,6 +71,6 @@ rsync rsync://m1725057@dataserv.ub.tum.de/m1725057/ $RAW_RESULTS/
 ./evaluate.py --output-dir $EVAL_OUTPUT $RAW_RESULTS/*
 ```
 
-### Special Analyses
+### Specialized Analyses
 
 The evaluation script can be paramtereized with `--cpu-profiling True` and `--deviation-analysis True`. The former makes only sense if the CPU usage was monitored with `perf` (we published perf results, however, the docker scripts are unable to generate them), the latter makes only sense for the `level*` experiments.
