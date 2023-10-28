@@ -1,5 +1,29 @@
 # PQC TLS Measurements
 
+This repository containes the published measurement and evaluation scripts for the paper *The Performance of Post-Quantum TLS 1.3*, by Markus Sosnowski, Florian Wiedner, Eric Hauser, Lion Steger, Dimitrios Schoinianakis, Sebastian Gallenmüller, and Georg Carle.
+The paper was published at [CoNEXT 2023](https://conferences.sigcomm.org/co-next/2023/#!/home) and can be accessed under [DOI:10.1145/3624354.3630585](https://doi.org/10.1145/3624354.3630585).
+
+If you could find our work useful, consider citing our paper. 
+You can use:
+
+```bibtex
+@inproceedings{SosnowskiPQTLS23,
+  title = {{The Performance of Post-Quantum TLS 1.3}},
+  author = {Sosnowski, Markus and Wiedner, Florian and Hauser, Eric and Steger, Lion and Schoinianakis, Dimitrios and Gallenm{\"u}ller, Sebastian and Carle, Georg},
+  booktitle = {Proceedings of the International Conference on emerging Networking EXperiments and Technologies (CoNEXT '23)},
+  year = 2023,
+  address = {Paris, France},
+  month = dec,
+  keywords = {performance measurements, post-quantum cryptography},
+  homepage = {https://tumi8.github.io/pqs-tls-measurements},
+  doi = {10.1145/3624354.3630585},
+}
+
+```
+
+
+## PQC TLS Measurements and Evaluations
+
 Our measurements were originally conducted in an raw hardware with an optical splitter setup.
 Details can be found under https://tumi8.github.io/pqs-tls-measurements
 For the sake of reproducibility, we adapted our setup to run in an docker environment.
