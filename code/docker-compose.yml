@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   client:
     build:
@@ -17,8 +19,12 @@ services:
       - CPU_PROFILING=${CPU_PROFILING}
       - NETEM_TC=${NETEM_TC}
     volumes:
-      - cert-data:/opt/shared
-      - ${HOST_DIR}/client:/out
+      - type: volume
+        source: cert-data
+        target: /opt/shared
+      - type: bind
+        source: ${HOST_DIR}/client
+        target: /out
   server:
     build:
       context: docker/clientserver
@@ -36,15 +42,21 @@ services:
       - CPU_PROFILING=${CPU_PROFILING}
       - NETEM_TC=${NETEM_TC}
     volumes:
-      - cert-data:/opt/shared
-      - ${HOST_DIR}/server:/out
+      - type: volume
+        source: cert-data
+        target: /opt/shared
+      - type: bind
+        source: ${HOST_DIR}/server
+        target: /out
   post-processor:
     build: docker/post-processor
     entrypoint: ["/opt/run.sh", "/srv/client/latencies-post_run${RUN}.pcap", "/srv/server/latencies-pre_run${RUN}.pcap"]
     environment:
       - RUN=${RUN}
     volumes:
-      - ${HOST_DIR}:/srv/
+      - type: bind
+        source: ${HOST_DIR}
+        target: /srv/
   pre-analyzer:
     build:
       context: .
@@ -52,8 +64,12 @@ services:
       - CPU_PROFILING=${CPU_PROFILING}
       - PARALLEL_JOBS=100%
     volumes:
-      - ${HOST_DIR}:/srv/
-      - ${OUT_DIR}:/out/
+      - type: bind
+        source: ${HOST_DIR}
+        target: /srv/
+      - type: bind
+        source: ${OUT_DIR}
+        target: /out/
   final-analyzer:
     build: finalization
     environment:
@@ -61,8 +77,12 @@ services:
       - CPU_PROFILING=${CPU_PROFILING}
       - DEVIATION_ANALYSIS=${DEVIATION_ANALYSIS}
     volumes:
-      - ${HOST_DIR}:/srv/
-      - ${OUT_DIR}:/out/
+      - type: bind
+        source: ${HOST_DIR}
+        target: /srv/
+      - type: bind
+        source: ${OUT_DIR}
+        target: /out/
 
 volumes:
   cert-data:
