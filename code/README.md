@@ -30,7 +30,7 @@ For the sake of reproducibility, we adapted our setup to run in an docker enviro
 
 Requirements:
 * Linux (ideally, `debian bullseye`)
-* Installed Docker (https://docs.docker.com/engine/install/debian/)
+* Installed Docker (https://docs.docker.com/engine/install/debian/), we tested it with version 24.0.6
 * Python3 `apt-get install python3`
 * Python3 Libraries: `apt-get install python3-click python3-yaml`
 
