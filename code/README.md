@@ -1,5 +1,7 @@
 # PQC TLS Measurements
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10054882.svg)](https://doi.org/10.5281/zenodo.10054882)
+
 This repository containes the published measurement and evaluation scripts for the paper *The Performance of Post-Quantum TLS 1.3*, by Markus Sosnowski, Florian Wiedner, Eric Hauser, Lion Steger, Dimitrios Schoinianakis, Sebastian Gallenmüller, and Georg Carle.
 The paper was published at [CoNEXT 2023](https://conferences.sigcomm.org/co-next/2023/#!/home) and can be accessed under [DOI:10.1145/3624354.3630585](https://doi.org/10.1145/3624354.3630585).
 
