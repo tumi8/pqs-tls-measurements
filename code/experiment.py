@@ -37,7 +37,8 @@ def main(experiments: List[str], output_dir: str):
     output_dir.mkdir()
     for experiment in experiments:
         experiment_out_dir = output_dir / experiment
-        experiment_out_dir.mkdir()
+        (experiment_out_dir / 'client').mkdir(parents=True)
+        (experiment_out_dir / 'server').mkdir(parents=True)
         run = 0
         logging.info(f'Starting {experiment} Experiment to {experiment_out_dir}')
         loop_vars_path = script_dir / 'loop_vars' / f'{experiment}.yml'
