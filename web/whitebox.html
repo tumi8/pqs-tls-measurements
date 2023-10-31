@@ -14,27 +14,22 @@
             <h1 id="the-chair-of-br-network-architectures-and-services">Table 3</h1>
             <p>Results from the white-box measurements.</p>
 
-             <h3>Full Table</h3>
-		  <figure style="display:block;margin-left:auto;margin-right:auto;width:100%;float:left;">
-		<img src="{{ site.baseurl }}/figures/whitebox/table-cross-perf.pdf.svg">
-		<figcaption style="text-align:center;">Level 1 and 2</figcaption>
-		</figure>
-	    <figure style="display:block;margin-left:auto;margin-right:auto;width:100%;float:left;">
-			<img src="{{ site.baseurl }}/figures/whitebox/table-cross-perf-2.pdf.svg">
-			<figcaption style="text-align:center;">Level 3 and 5</figcaption>
-		</figure>
-	
+        <h3>Full Table</h3>
+    	    <figure style="display:block;margin-left:auto;margin-right:auto;width:100%;float:left;">
+    	        <img src="{{ site.baseurl }}/figures/whitebox/table-cross-perf.pdf.svg">
+    	    </figure>
+
 		<h3>Setup</h3>
 			    As described in detail on the <a href="{{ site.baseurl }}/web/setup.html">hardware setup</a> and <a href="{{ site.baseurl }}/web/software-setup.html">software setup</a> pages. Unfortunate, the experiments with Linux perf are not possible on Docker. The table can be reproduced from our recorded data of Linux perf which we publish in raw format.
-	    
+
 	    <h3>Experiment</h3>
-	    
+
 	    <p>The following need to be changed in the variabled for server and client:</p>
 	    	      <details>
                    <summary>Global Variables</summary>
                    {% include variables-white.html %}
                  </details>
-	    
+
 	    <p>The following loop variable file need to be used containing all Levels to be used, each level need to be executed separately:</p>
 	      <details>
                    <summary>Loop Variables for Level 1 and 2</summary>
@@ -59,7 +54,7 @@
                    {% include experiment_client.html %}
                  </details>
             <p>The client automatically stops after the predefined measurement time, while the timer and the server need to receive a SIG INT signal to terminate.</p>
-            
+
 	    <h3>Evaluation</h3>
 	    <p>After the experiment, the results are available in the results folder for client, server, and timestamper. In case of Docker, we only have two folders because of our two node setup and need to copy all PCAPs to the timestamper folder. This step can be done using our prepared data from the hardware timestamping or the results from the Docker-based experiment.</p>
 	                	    	      <details>
@@ -92,8 +87,8 @@
 	             <summary>Blackbox analysis</summary>
                    {% include blackbox.html %}
                  </details>
-	    
-	    
+
+
 	    <h3>Docker Evaluation Execution</h3>
 	    	    <p>To execute the evaluation using docker, docker and its dependencies needs to be installed on the systems. The current working directory must be at the <a href="{{ site.repository }}/code">code</a> folder.</p>
                  <details>
@@ -116,7 +111,7 @@
 	    	<li><a href="https://dataserv.ub.tum.de/index.php/s/m1725057">Server results under level5-perf/server</a>: Contains the outputs of the scripts executed on the server for level 5.</li>
 	    	<li><a href="https://dataserv.ub.tum.de/index.php/s/m1725057">Timestamper results under level5-perf/timestamper</a>: Contains the PCAPs of the experiment from level 5.</li>
 	    </ul>
-	    
+
             <div class="fadein">
             </div>
           </div>
