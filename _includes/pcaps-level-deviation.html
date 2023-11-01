@@ -1,0 +1,9 @@
+<p><pre><code>
+    rsync -rP rsync://m1725057@dataserv.ub.tum.de/m1725057/level1/ /opt/level1/
+    rsync -rP rsync://m1725057@dataserv.ub.tum.de/m1725057/level3/ /opt/level3/
+    rsync -rP rsync://m1725057@dataserv.ub.tum.de/m1725057/level5/ /opt/level5/
+    rsync -rP rsync://m1725057@dataserv.ub.tum.de/m1725057/level1-nopush/ /opt/level1-nopush/
+    rsync -rP rsync://m1725057@dataserv.ub.tum.de/m1725057/level3-nopush/ /opt/level3-nopush/
+    rsync -rP rsync://m1725057@dataserv.ub.tum.de/m1725057/level5-nopush/ /opt/level5-nopush/
+   ./evaluate.py --deviation-analysis True --output-dir /opt/pqc-analysis /opt/level*
+</code></pre></p>
