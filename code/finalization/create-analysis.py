@@ -249,6 +249,10 @@ def analyze_dir(result_dir: pathlib.Path, output_writer: csv.DictWriter):
     output = sorted(output, key=lambda x: (x.get('level'), x.get('kem'), x.get('sig')))
 
     for run in output:
+        if 'level' not in run:
+            logging.fatal(f'Could not find meta-data for run {run}. Is there a client_results.csv present?')
+            continue
+
         run['level'] = int(float(run['level']))
 
         if 'level1' in result_name and 1 <= run['level'] <=2:
