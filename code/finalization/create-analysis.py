@@ -132,6 +132,8 @@ def analyse(result_dir: pathlib.Path):
 
 def extract_run(file_name: str):
     m = re.search(r'.*run(\d+).*', file_name)
+    if m is None:
+        raise Exception(f'Could not extract run from {file_name}.')
     return m.group(1)
 
 
