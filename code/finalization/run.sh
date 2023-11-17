@@ -14,5 +14,5 @@ if [[ $DEVIATION_ANALYSIS == "True" ]]; then
 fi
 
 if [[ "$CPU_PROFILING" == "True" ]]; then
-  /opt/eval_profiling.py /srv > $out_name/latencies.csv $out_name/profiling.csv
+  /opt/eval_profiling.py /srv > $out_name/profiling.csv
 fi
