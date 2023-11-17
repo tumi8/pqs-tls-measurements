@@ -6,6 +6,9 @@
 
 COMPOSE_FILE=docker-compose.yml
 
+# Cleanup containers
+docker --log-level ERROR compose -f $COMPOSE_FILE down pre-analyzer
+
 echo "Building docker images..."
 docker --log-level ERROR compose -f $COMPOSE_FILE build --quiet pre-analyzer
 
