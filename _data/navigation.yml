@@ -1,0 +1,22 @@
+toc:
+  - name: Home
+    url: /
+  - name: Hardware Setup
+    url: /setup/
+  - name: Software Setup
+    url: /software-setup/
+  - name: Figures and Tables
+    url: /reproducibility/
+    subfolderitems:
+      - name: Table 2a
+        url: /reproducibility/kem/
+      - name: Table 2b
+        url: /reproducibility/sig/
+      - name: Figure 3
+        url: /reproducibility/deviation/
+      - name: Table 3
+        url: /reproducibility/whitebox/
+      - name: Figure 4
+        url: /reproducibility/ranking/
+      - name: Table 4
+        url: /reproducibility/netem/
