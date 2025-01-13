@@ -1,7 +1,7 @@
 ---
 layout: page
 permalink: /
-title: "The Performance of Post-Quantum TLS1.3"
+title: "The Performance of Post-Quantum TLS 1.3"
 description: "This page describes the artifacts and published data necessary to reproduce the findings of the paper: \"The Performance of Post-Quantum TLS1.3\", a collobaration between TUM and Nokia Bell Labs."
 ---
 

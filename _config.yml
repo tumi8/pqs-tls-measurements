@@ -1,5 +1,5 @@
 
-title: The Performance of Post-Quantum TLS1.3
+title: The Performance of Post-Quantum TLS 1.3
 email: wiedner@net.in.tum.de
 baseurl: "/pqs-tls-measurements" # the subpath of your site, e.g. /blog
 url: "https://tumi8.github.io"
