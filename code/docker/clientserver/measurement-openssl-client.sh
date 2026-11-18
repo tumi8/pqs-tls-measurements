@@ -50,6 +50,8 @@ fi
 sleep 30  # Make sure it is finished and written out
 
 kill -2 $TCPDUMP_PID
+# Finish flushing the capture before Docker stops the remaining processes.
+wait $TCPDUMP_PID
 
 if [ "$CPU_PROFILING" = "True" ]
 then

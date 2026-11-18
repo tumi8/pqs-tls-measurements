@@ -13,9 +13,15 @@ ENV OPENSSL_SRC_PATH /opt/openssl-src
 ENV MAKE_DEFINES "-j 18"
 ENV DEBIAN_FRONTEND noninteractive
 
-RUN apt-get update && apt-get upgrade -y
-
-RUN apt-get install -y build-essential iproute2 \
+# Bullseye security packages have moved off the live mirror. Keep the
+# historical distribution and signed packages available for reproduction.
+ARG DEBIAN_SNAPSHOT=20260831T235959Z
+RUN printf '%s\n' \
+    "deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/${DEBIAN_SNAPSHOT}/ bullseye main" \
+    "deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/${DEBIAN_SNAPSHOT}/ bullseye-security main" \
+    > /etc/apt/sources.list && \
+    apt-get update && apt-get upgrade -y && \
+    apt-get install -y build-essential iproute2 \
             libtool automake autoconf cmake ninja-build dnsutils tcpdump \
             make \
             openssl libssl-dev \
@@ -24,8 +30,10 @@ RUN apt-get install -y build-essential iproute2 \
 RUN mkdir -p /opt $OPENSSL_PATH $OPENSSL_SRC_PATH /out
 WORKDIR /opt
 
-RUN git clone --branch main https://github.com/open-quantum-safe/liboqs && \
-    git clone --depth 1 --branch ${OPENSSL_BRANCH} ${OPENSSL_REPO} ${OPENSSL_SRC_PATH}
+RUN git init --quiet liboqs && \
+    git -C liboqs remote add origin https://github.com/open-quantum-safe/liboqs && \
+    git -C liboqs fetch --progress --depth 1 origin ${LIBOQS_COMMIT} && \
+    git clone --progress --depth 1 --branch ${OPENSSL_BRANCH} ${OPENSSL_REPO} ${OPENSSL_SRC_PATH}
 
 WORKDIR /opt/liboqs
 
@@ -50,6 +58,11 @@ RUN ./config shared ${OPENSSL_BUILD_DEFINES} --prefix=${OPENSSL_PATH} && \
     make generate_crypto_objects && \
     make ${MAKE_DEFINES} && \
     make install
+
+# A completed -new measurement must return success; error paths still return 1.
+COPY s_time-new-exit.patch /opt/s_time-new-exit.patch
+RUN git apply /opt/s_time-new-exit.patch && \
+    make ${MAKE_DEFINES} && make install_sw
 
 ARG CPU_PROFILING
 RUN if [ "$CPU_PROFILING" = "True" ]; then \
