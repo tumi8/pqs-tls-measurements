@@ -76,3 +76,46 @@ rsync rsync://m1725057@dataserv.ub.tum.de/m1725057/ $RAW_RESULTS/
 ### Specialized Analyses
 
 The evaluation script can be paramtereized with `--cpu-profiling True` and `--deviation-analysis True`. The former makes only sense if the CPU usage was monitored with `perf` (we published perf results, however, the docker scripts are unable to generate them), the latter makes only sense for the `level*` experiments.
+
+### Local Windows smoke check
+
+This local reproduction branch adds `Run-Smoke.ps1` for PowerShell 7,
+Docker Desktop's Linux engine and Python 3 on PATH. From this directory:
+
+```powershell
+.\Run-Smoke.ps1 -OutputDirectory ./msrmt-results/smoke-classical -KeyExchange X25519
+```
+
+Use a new output directory for each run. After building, `-SkipBuild` reuses
+the image. The other supported smoke groups are `kyber768` and
+`p384_kyber768`. All three use RSA-2048 server authentication, no client
+certificate, no netem and no CPU profiling. The default measurement request
+is five seconds; upstream `s_time` can report six actual seconds.
+
+The local fixes use a signed Debian snapshot for historical Bullseye packages,
+shallow-fetch the original pinned liboqs commit, fix the completed `s_time -new`
+exit status and wait for tcpdump to flush before the client exits.
+`validate_pcaps.py` rejects truncated/empty captures before the launcher reports
+success. Results include original logs, PCAP, CSV/JSON and capture validation.
+These are pipeline checks; quantitative comparisons require a controlled,
+repeated experiment. Kyber in this fork is not standardized ML-KEM.
+
+### Linux VM smoke check
+
+With Docker Engine, the Compose plugin, Git and Python 3 installed, run:
+
+```bash
+python3 run_vm_smoke.py --output "$HOME/pqc-results/smoke-classical" --kem X25519
+```
+
+The first run builds only the client/server images. For later runs, add
+`--skip-build` and use a new output directory. `--kem kyber768` and
+`--kem p384_kyber768` select the other smoke profiles; `--seconds 60`
+requests a longer measurement. The runner checks the Docker engine, refuses
+existing outputs or an occupied Compose project, waits for the server,
+verifies complete captures and records environment/results as JSON/CSV.
+All profiles use RSA-2048 server authentication and fresh connections.
+Two containers on one VM measure the Docker bridge path. Cross-VM Neutron
+effects require a separate topology. The runner has also been exercised
+against a local Linux Docker engine; actual OpenStack VM results must be
+recorded separately.

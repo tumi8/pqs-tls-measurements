@@ -1,0 +1,11 @@
+diff --git a/apps/s_time.c b/apps/s_time.c
+--- a/apps/s_time.c
++++ b/apps/s_time.c
+@@ -282,4 +282,6 @@
+  next:
+-    if (!(perform & 2))
++    if (!(perform & 2)) {
++        ret = 0;
+         goto end;
++    }
+     printf("\n\nNow timing with session id reuse.\n");
