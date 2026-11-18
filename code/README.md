@@ -99,3 +99,23 @@ exit status and wait for tcpdump to flush before the client exits.
 success. Results include original logs, PCAP, CSV/JSON and capture validation.
 These are pipeline checks; quantitative comparisons require a controlled,
 repeated experiment. Kyber in this fork is not standardized ML-KEM.
+
+### Linux VM smoke check
+
+With Docker Engine, the Compose plugin, Git and Python 3 installed, run:
+
+```bash
+python3 run_vm_smoke.py --output "$HOME/pqc-results/smoke-classical" --kem X25519
+```
+
+The first run builds only the client/server images. For later runs, add
+`--skip-build` and use a new output directory. `--kem kyber768` and
+`--kem p384_kyber768` select the other smoke profiles; `--seconds 60`
+requests a longer measurement. The runner checks the Docker engine, refuses
+existing outputs or an occupied Compose project, waits for the server,
+verifies complete captures and records environment/results as JSON/CSV.
+All profiles use RSA-2048 server authentication and fresh connections.
+Two containers on one VM measure the Docker bridge path. Cross-VM Neutron
+effects require a separate topology. The runner has also been exercised
+against a local Linux Docker engine; actual OpenStack VM results must be
+recorded separately.
